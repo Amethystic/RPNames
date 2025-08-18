@@ -207,46 +207,45 @@ namespace AutoMapRoom
                     return;
                 }
 
-                Main.activeTriggers.RemoveAll(room => !Main.triggersThisFrame.Contains(room));
-                foreach (var room in Main.triggersThisFrame)
-                {
-                    if (!Main.activeTriggers.Contains(room))
-                    {
-                        Main.activeTriggers.Add(room);
-                    }
-                }
-                Main.triggersThisFrame.Clear();
+                // --- Instant Entry, Delayed Exit Logic ---
 
-                // --- PRIORITY LOGIC FIX ---
-                string desiredRoom;
-                string fieldNameRoom = Main.activeTriggers.LastOrDefault();
-
-                // If a specific Field Name is active, it ALWAYS takes priority.
-                if (!string.IsNullOrEmpty(fieldNameRoom))
+                // 1. Check for new entries this frame
+                var newlyEnteredTriggers = Main.triggersThisFrame.Except(Main.activeTriggers).ToList();
+                if (newlyEnteredTriggers.Any())
                 {
-                    desiredRoom = fieldNameRoom;
-                }
-                // Only if there is NO active Field Name, we fall back to the Map Name.
-                else
-                {
-                    desiredRoom = Main.currentMapRoomName ?? "";
-                }
-                
-                // --- Debounce Logic ---
-                if (desiredRoom != Main.pendingChatRoom)
-                {
+                    // Add new triggers to the active list
+                    Main.activeTriggers.AddRange(newlyEnteredTriggers);
+                    // Determine the new desired room (always prioritize the newest trigger)
+                    string desiredRoom = Main.activeTriggers.LastOrDefault() ?? Main.currentMapRoomName ?? "";
+                    // Act immediately
+                    UpdateChatRoom(desiredRoom);
+                    // Reset any pending exit debounce
                     Main.pendingChatRoom = desiredRoom;
                     Main.pendingFrameCounter = 0;
                 }
                 else
                 {
-                    Main.pendingFrameCounter++;
+                    // 2. If no new entries, handle potential exits with a debounce
+                    Main.activeTriggers.RemoveAll(room => !Main.triggersThisFrame.Contains(room));
+                    string desiredRoom = Main.activeTriggers.LastOrDefault() ?? Main.currentMapRoomName ?? "";
+
+                    if (desiredRoom != Main.pendingChatRoom)
+                    {
+                        Main.pendingChatRoom = desiredRoom;
+                        Main.pendingFrameCounter = 0;
+                    }
+                    else
+                    {
+                        Main.pendingFrameCounter++;
+                    }
+
+                    if (Main.pendingFrameCounter >= Main.FrameDebounceThreshold && Main.pendingChatRoom != Main.currentChatRoom)
+                    {
+                        UpdateChatRoom(Main.pendingChatRoom);
+                    }
                 }
 
-                if (Main.pendingFrameCounter >= Main.FrameDebounceThreshold && Main.pendingChatRoom != Main.currentChatRoom)
-                {
-                    UpdateChatRoom(Main.pendingChatRoom);
-                }
+                Main.triggersThisFrame.Clear();
             }
 
             internal static void UpdateChatRoom(string desiredRoom)
