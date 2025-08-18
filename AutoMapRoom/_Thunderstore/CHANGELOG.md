@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.9
+## 1.1.0
 - holy christ dillinger
 
 ## 1.0.8
