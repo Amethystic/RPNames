@@ -15,7 +15,6 @@ namespace AutoMapRoom
     [BepInPlugin(ModInfo.GUID, ModInfo.NAME, ModInfo.VERSION)]
     public class Main : BaseUnityPlugin
     {
-        // --- State Management ---
         public static List<string> triggersThisFrame = new List<string>();
         public static string currentMapRoomName = "";
         public static string currentChatRoom = "";
@@ -24,8 +23,6 @@ namespace AutoMapRoom
         public static bool IsReady = false;
         
         internal static ManualLogSource Log;
-
-        // --- Configuration & UI ---
         internal static ConfigEntry<bool> ModEnabled;
         internal static ConfigEntry<bool> DebugLoggingEnabled;
         internal static ConfigEntry<bool> DisableGlobalOnRoomJoin;
@@ -186,7 +183,7 @@ namespace AutoMapRoom
                 {
                     if (Main.IsReady)
                     {
-                        LogDebug("Player object lost (returned to menu?). Resetting state.");
+                        LogDebug("Player object lost. Resetting state.");
                         Main.IsReady = false;
                         Main.currentChatRoom = "";
                     }
@@ -196,7 +193,7 @@ namespace AutoMapRoom
                 if (!Main.IsReady)
                 {
                     Main.IsReady = true;
-                    LogDebug("Player object detected. AutoMapRoom is now active.");
+                    LogDebug("Player object detected. AutoMapRoom is active.");
                 }
 
                 if (!Main.ModEnabled.Value || __instance != global::Player._mainPlayer || AtlyssNetworkManager._current._soloMode) return;
@@ -209,10 +206,8 @@ namespace AutoMapRoom
                     return;
                 }
 
-                // --- SIMPLIFIED LOGIC ---
                 string desiredRoom = Main.triggersThisFrame.LastOrDefault() ?? Main.currentMapRoomName ?? "";
 
-                // Only act if the desired room is different from our current room.
                 if (desiredRoom != Main.currentChatRoom)
                 {
                     UpdateChatRoom(desiredRoom);
