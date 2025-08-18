@@ -24,7 +24,8 @@ namespace AutoMapRoom
         public static bool _modDisabledGlobalChat = false;
         
         // --- Debounce State ---
-        public const int FrameDebounceThreshold = 3;
+        // A threshold of 1 feels instant but filters out single-frame physics flickers.
+        public const int FrameDebounceThreshold = 1; 
         public static string pendingChatRoom = null;
         public static int pendingFrameCounter = 0;
         
@@ -207,44 +208,27 @@ namespace AutoMapRoom
                     return;
                 }
 
-                // --- Instant Entry, Delayed Exit Logic ---
-
-                // 1. Check for new entries this frame
-                var newlyEnteredTriggers = Main.triggersThisFrame.Except(Main.activeTriggers).ToList();
-                if (newlyEnteredTriggers.Any())
+                // --- Unified Debounce Logic ---
+                string desiredRoom = Main.activeTriggers.LastOrDefault() ?? Main.currentMapRoomName ?? "";
+                
+                // This logic is now unified again, but with a much lower threshold.
+                if (desiredRoom != Main.pendingChatRoom)
                 {
-                    // Add new triggers to the active list
-                    Main.activeTriggers.AddRange(newlyEnteredTriggers);
-                    // Determine the new desired room (always prioritize the newest trigger)
-                    string desiredRoom = Main.activeTriggers.LastOrDefault() ?? Main.currentMapRoomName ?? "";
-                    // Act immediately
-                    UpdateChatRoom(desiredRoom);
-                    // Reset any pending exit debounce
                     Main.pendingChatRoom = desiredRoom;
                     Main.pendingFrameCounter = 0;
                 }
                 else
                 {
-                    // 2. If no new entries, handle potential exits with a debounce
-                    Main.activeTriggers.RemoveAll(room => !Main.triggersThisFrame.Contains(room));
-                    string desiredRoom = Main.activeTriggers.LastOrDefault() ?? Main.currentMapRoomName ?? "";
-
-                    if (desiredRoom != Main.pendingChatRoom)
-                    {
-                        Main.pendingChatRoom = desiredRoom;
-                        Main.pendingFrameCounter = 0;
-                    }
-                    else
-                    {
-                        Main.pendingFrameCounter++;
-                    }
-
-                    if (Main.pendingFrameCounter >= Main.FrameDebounceThreshold && Main.pendingChatRoom != Main.currentChatRoom)
-                    {
-                        UpdateChatRoom(Main.pendingChatRoom);
-                    }
+                    Main.pendingFrameCounter++;
                 }
 
+                if (Main.pendingFrameCounter >= Main.FrameDebounceThreshold && Main.pendingChatRoom != Main.currentChatRoom)
+                {
+                    UpdateChatRoom(Main.pendingChatRoom);
+                }
+
+                // The triggers we were in *this frame* become the confirmed state for the *next frame*.
+                Main.activeTriggers = Main.triggersThisFrame.ToList();
                 Main.triggersThisFrame.Clear();
             }
 
