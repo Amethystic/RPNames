@@ -7,6 +7,7 @@
 - pls cache pls
 - this is torture omg omlllll
 - this is turning into badupdate xbox 360
+- culprit had to be debounce itself
 
 ## 1.0.8
 - How many fixes can we do speedrun?

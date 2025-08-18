@@ -17,17 +17,11 @@ namespace AutoMapRoom
     {
         // --- State Management ---
         public static List<string> triggersThisFrame = new List<string>();
-        public static string rawMapName = ""; // Stores the original, unmodified map name
         public static string currentMapRoomName = "";
         public static string currentChatRoom = "";
         public static Dictionary<string, string> roomNameCache = new Dictionary<string, string>();
         public static bool _modDisabledGlobalChat = false;
         public static bool IsReady = false;
-        
-        // --- Time-Based Debounce State ---
-        public const float DebounceSeconds = 0.2f;
-        public static string pendingChatRoom = null;
-        public static float pendingStateEnterTime = 0f;
         
         internal static ManualLogSource Log;
 
@@ -115,10 +109,6 @@ namespace AutoMapRoom
                 {
                     HarmonyPatches.Hook.UpdateChatRoom("");
                 }
-                else if (newEnabledState)
-                {
-                    pendingChatRoom = null;
-                }
             }
             
             DebugLoggingEnabled.Value = GUILayout.Toggle(DebugLoggingEnabled.Value, " Enable Debug Logging");
@@ -186,9 +176,7 @@ namespace AutoMapRoom
                 
                 if (_new == null) return;
                 
-                Main.rawMapName = _new._mapName; // Store the original map name
                 Main.currentMapRoomName = FormatRoomName(_new._mapName);
-                Main.pendingChatRoom = null;
             }
 
             [HarmonyPostfix, HarmonyPatch(typeof(Player), "Update")]
@@ -201,7 +189,6 @@ namespace AutoMapRoom
                         LogDebug("Player object lost (returned to menu?). Resetting state.");
                         Main.IsReady = false;
                         Main.currentChatRoom = "";
-                        Main.pendingChatRoom = null;
                     }
                     return;
                 }
@@ -214,8 +201,7 @@ namespace AutoMapRoom
 
                 if (!Main.ModEnabled.Value || __instance != global::Player._mainPlayer || AtlyssNetworkManager._current._soloMode) return;
                 
-                // --- SANCTUM FIX: Check the raw, unmodified map name for an exact match ---
-                bool isInSanctum = Main.rawMapName.Equals("Sanctum", StringComparison.OrdinalIgnoreCase);
+                bool isInSanctum = Main.currentMapRoomName.Equals("Sanctum", StringComparison.OrdinalIgnoreCase);
                 if (isInSanctum)
                 {
                     if (Main.currentChatRoom != "") UpdateChatRoom("");
@@ -223,20 +209,13 @@ namespace AutoMapRoom
                     return;
                 }
 
+                // --- SIMPLIFIED LOGIC ---
                 string desiredRoom = Main.triggersThisFrame.LastOrDefault() ?? Main.currentMapRoomName ?? "";
 
-                if (desiredRoom != Main.pendingChatRoom)
+                // Only act if the desired room is different from our current room.
+                if (desiredRoom != Main.currentChatRoom)
                 {
-                    Main.pendingChatRoom = desiredRoom;
-                    Main.pendingStateEnterTime = Time.time;
-                }
-
-                if (Time.time - Main.pendingStateEnterTime > Main.DebounceSeconds)
-                {
-                    if (Main.pendingChatRoom != Main.currentChatRoom)
-                    {
-                        UpdateChatRoom(Main.pendingChatRoom);
-                    }
+                    UpdateChatRoom(desiredRoom);
                 }
                 
                 Main.triggersThisFrame.Clear();
@@ -267,7 +246,7 @@ namespace AutoMapRoom
                 if (spacelessName.Length > maxRoomNameLength)
                 {
                     StringBuilder acronymBuilder = new StringBuilder();
-                    string[] words = regionName.Split([' '], StringSplitOptions.RemoveEmptyEntries);
+                    string[] words = regionName.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                     foreach (string word in words)
                     {
                         if (char.IsLetterOrDigit(word[0]))
