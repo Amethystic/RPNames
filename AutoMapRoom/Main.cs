@@ -21,9 +21,10 @@ namespace AutoMapRoom
         public static string currentChatRoom = "";
         public static Dictionary<string, string> roomNameCache = new Dictionary<string, string>();
         public static bool _modDisabledGlobalChat = false;
+        public static bool IsReady = false; // The master "ready check" flag
         
         // --- Time-Based Debounce State ---
-        public const float DebounceSeconds = 0.2f; // A small delay to filter out physics flicker
+        public const float DebounceSeconds = 0.2f;
         public static string pendingChatRoom = null;
         public static float pendingStateEnterTime = 0f;
         
@@ -160,7 +161,7 @@ namespace AutoMapRoom
             [HarmonyPostfix, HarmonyPatch(typeof(MapVisualOverrideTrigger), "OnTriggerStay")]
             private static void OnTriggerStay_Postfix(MapVisualOverrideTrigger __instance, Collider other)
             {
-                if (!Main.ModEnabled.Value) return;
+                if (!Main.IsReady || !Main.ModEnabled.Value) return;
                 if (string.IsNullOrWhiteSpace(__instance._reigonName) || !IsMainPlayer(other)) return;
                 string roomName = FormatRoomName(__instance._reigonName);
                 if (!Main.triggersThisFrame.Contains(roomName))
@@ -172,7 +173,7 @@ namespace AutoMapRoom
             [HarmonyPostfix, HarmonyPatch(typeof(Player), "OnPlayerMapInstanceChange")]
             private static void OnMapInstanceChange_Postfix(Player __instance, MapInstance _new)
             {
-                if (__instance != global::Player._mainPlayer) return;
+                if (global::Player._mainPlayer == null || __instance != global::Player._mainPlayer) return;
                 
                 if (AtlyssNetworkManager._current._soloMode)
                 {
@@ -191,6 +192,26 @@ namespace AutoMapRoom
             [HarmonyPostfix, HarmonyPatch(typeof(Player), "Update")]
             private static void PlayerUpdate_Postfix(Player __instance)
             {
+                // --- MASTER READY CHECK ---
+                if (global::Player._mainPlayer == null)
+                {
+                    if (Main.IsReady)
+                    {
+                        LogDebug("Player object lost (returned to menu?). Resetting state.");
+                        Main.IsReady = false;
+                        Main.currentChatRoom = "";
+                        Main.pendingChatRoom = null;
+                    }
+                    return; // Not in a playable state, do nothing.
+                }
+
+                if (!Main.IsReady)
+                {
+                    Main.IsReady = true;
+                    LogDebug("Player object detected. AutoMapRoom is now active.");
+                }
+                // --- END MASTER READY CHECK ---
+
                 if (!Main.ModEnabled.Value || __instance != global::Player._mainPlayer || AtlyssNetworkManager._current._soloMode) return;
                 
                 bool isInSanctum = Main.currentMapRoomName.Equals("Sanctum", StringComparison.OrdinalIgnoreCase);
@@ -201,17 +222,14 @@ namespace AutoMapRoom
                     return;
                 }
 
-                // --- Time-Based Debounce Logic ---
                 string desiredRoom = Main.triggersThisFrame.LastOrDefault() ?? Main.currentMapRoomName ?? "";
 
                 if (desiredRoom != Main.pendingChatRoom)
                 {
-                    // If the desired state changes, start the timer.
                     Main.pendingChatRoom = desiredRoom;
                     Main.pendingStateEnterTime = Time.time;
                 }
 
-                // Only act if the state has been stable for longer than our debounce period.
                 if (Time.time - Main.pendingStateEnterTime > Main.DebounceSeconds)
                 {
                     if (Main.pendingChatRoom != Main.currentChatRoom)
