@@ -17,11 +17,12 @@ namespace AutoMapRoom
     {
         // --- State Management ---
         public static List<string> triggersThisFrame = new List<string>();
+        public static string rawMapName = ""; // Stores the original, unmodified map name
         public static string currentMapRoomName = "";
         public static string currentChatRoom = "";
         public static Dictionary<string, string> roomNameCache = new Dictionary<string, string>();
         public static bool _modDisabledGlobalChat = false;
-        public static bool IsReady = false; // The master "ready check" flag
+        public static bool IsReady = false;
         
         // --- Time-Based Debounce State ---
         public const float DebounceSeconds = 0.2f;
@@ -185,6 +186,7 @@ namespace AutoMapRoom
                 
                 if (_new == null) return;
                 
+                Main.rawMapName = _new._mapName; // Store the original map name
                 Main.currentMapRoomName = FormatRoomName(_new._mapName);
                 Main.pendingChatRoom = null;
             }
@@ -192,7 +194,6 @@ namespace AutoMapRoom
             [HarmonyPostfix, HarmonyPatch(typeof(Player), "Update")]
             private static void PlayerUpdate_Postfix(Player __instance)
             {
-                // --- MASTER READY CHECK ---
                 if (global::Player._mainPlayer == null)
                 {
                     if (Main.IsReady)
@@ -202,7 +203,7 @@ namespace AutoMapRoom
                         Main.currentChatRoom = "";
                         Main.pendingChatRoom = null;
                     }
-                    return; // Not in a playable state, do nothing.
+                    return;
                 }
 
                 if (!Main.IsReady)
@@ -210,11 +211,11 @@ namespace AutoMapRoom
                     Main.IsReady = true;
                     LogDebug("Player object detected. AutoMapRoom is now active.");
                 }
-                // --- END MASTER READY CHECK ---
 
                 if (!Main.ModEnabled.Value || __instance != global::Player._mainPlayer || AtlyssNetworkManager._current._soloMode) return;
                 
-                bool isInSanctum = Main.currentMapRoomName.Equals("Sanctum", StringComparison.OrdinalIgnoreCase);
+                // --- SANCTUM FIX: Check the raw, unmodified map name for an exact match ---
+                bool isInSanctum = Main.rawMapName.Equals("Sanctum", StringComparison.OrdinalIgnoreCase);
                 if (isInSanctum)
                 {
                     if (Main.currentChatRoom != "") UpdateChatRoom("");
@@ -266,7 +267,7 @@ namespace AutoMapRoom
                 if (spacelessName.Length > maxRoomNameLength)
                 {
                     StringBuilder acronymBuilder = new StringBuilder();
-                    string[] words = regionName.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] words = regionName.Split([' '], StringSplitOptions.RemoveEmptyEntries);
                     foreach (string word in words)
                     {
                         if (char.IsLetterOrDigit(word[0]))
