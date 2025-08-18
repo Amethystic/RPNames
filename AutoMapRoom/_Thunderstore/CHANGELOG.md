@@ -1,14 +1,7 @@
 # Changelog
 
 ## 1.0.9
-- True Field Name Priority
-- Time-based Debounce
-- Sex changelog
-- pls cache pls
-- this is torture omg omlllll
-- this is turning into badupdate xbox 360
-- culprit had to be debounce itself
-- holy spammer direct state check it btch danM!
+- holy christ dillinger
 
 ## 1.0.8
 - How many fixes can we do speedrun?
