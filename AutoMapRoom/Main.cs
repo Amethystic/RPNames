@@ -15,9 +15,12 @@ namespace AutoMapRoom
     public class Main : BaseUnityPlugin
     {
         // --- Simplified State Management ---
+        public static string currentActiveTrigger = ""; // The single field for the current trigger. Replaces all lists.
+        public static string currentMapRoomName = "";
         public static string currentChatRoom = "";
         public static Dictionary<string, string> roomNameCache = new Dictionary<string, string>();
         public static bool _modDisabledGlobalChat = false;
+        public static bool IsReady = false;
         
         internal static ManualLogSource Log;
 
@@ -37,7 +40,7 @@ namespace AutoMapRoom
             
             ModEnabled = Config.Bind("General", "Enabled", true, "Globally enables or disables the auto room switching feature.");
             DebugLoggingEnabled = Config.Bind("General", "Debug Logging", false, "Enables verbose logging for troubleshooting.");
-            DisableGlobalOnRoomJoin = Config.Bind("General", "Mute Global in Rooms", true, "Automatically mutes the global chat channel when you join a map room.");
+            DisableGlobalOnRoomJoin = Config.Bind("General", "Mute Global in Rooms", true, "Automatically mutes the global chat channel when you join a map/region room.");
             _menuKey = Config.Bind("General", "Menu Key", KeyCode.F8, "The key to press to show/hide the settings menu.");
 
             Harmony.CreateAndPatchAll(typeof(HarmonyPatches.Hook));
@@ -68,7 +71,7 @@ namespace AutoMapRoom
             {
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
-                _windowRect = GUILayout.Window(1862, _windowRect, DrawSettingsWindow, "AutoMapRoom Settings");
+                _windowRect = GUILayout.Window(1862, _windowRect, DrawSettingsWindow, $"AutoMapRoom [{ModInfo.VERSION}]");
             }
         }
 
@@ -103,7 +106,6 @@ namespace AutoMapRoom
                 ModEnabled.Value = newEnabledState;
                 if (!newEnabledState && !string.IsNullOrEmpty(currentChatRoom))
                 {
-                    // If disabling, try to leave the current room.
                     HarmonyPatches.Hook.UpdateChatRoom("");
                 }
             }
@@ -145,44 +147,92 @@ namespace AutoMapRoom
             {
                 throw new NotImplementedException("This is a stub and should have been patched by Harmony.");
             }
+
+            // NEW: Set the active trigger name.
+            [HarmonyPostfix, HarmonyPatch(typeof(MapVisualOverrideTrigger), "OnTriggerStay")]
+            private static void OnTriggerStay_Postfix(MapVisualOverrideTrigger __instance, Collider other)
+            {
+                if (!Main.IsReady || !Main.ModEnabled.Value) return;
+                if (string.IsNullOrWhiteSpace(__instance._reigonName) || !IsMainPlayer(other)) return;
+                Main.currentActiveTrigger = FormatRoomName(__instance._reigonName);
+            }
             
-            // This is now the ONLY patch that controls room logic.
+            // NEW: Clear the active trigger name on exit.
+            [HarmonyPostfix, HarmonyPatch(typeof(MapVisualOverrideTrigger), "OnTriggerExit")]
+            private static void OnTriggerExit_Postfix(MapVisualOverrideTrigger __instance, Collider other)
+            {
+                if (!Main.IsReady || !Main.ModEnabled.Value) return;
+                if (string.IsNullOrWhiteSpace(__instance._reigonName) || !IsMainPlayer(other)) return;
+
+                string exitingRoomName = FormatRoomName(__instance._reigonName);
+                // Only clear the state if we are exiting the trigger we thought we were in.
+                if (Main.currentActiveTrigger == exitingRoomName)
+                {
+                    Main.currentActiveTrigger = "";
+                }
+            }
+            
             [HarmonyPostfix, HarmonyPatch(typeof(Player), "OnPlayerMapInstanceChange")]
             private static void OnMapInstanceChange_Postfix(Player __instance, MapInstance _new)
             {
-                // Safety checks
-                if (global::Player._mainPlayer == null || __instance != global::Player._mainPlayer || !Main.ModEnabled.Value) return;
+                if (global::Player._mainPlayer == null || __instance != global::Player._mainPlayer) return;
                 
                 if (AtlyssNetworkManager._current._soloMode)
                 {
-                    if (Main.currentChatRoom != "") LogDebug("Singleplayer detected, disabling room features.");
+                    LogDebug("Singleplayer disabled.");
                     Main.currentChatRoom = "";
                     Main._modDisabledGlobalChat = false;
                     return;
                 }
                 
-                // Determine the desired room based on the new map.
-                string desiredRoom;
-                if (_new == null || _new._mapName.Equals("Sanctum", StringComparison.OrdinalIgnoreCase))
+                if (_new == null) return;
+                
+                Main.currentMapRoomName = FormatRoomName(_new._mapName);
+                Main.currentActiveTrigger = ""; // Reset trigger state on map change.
+            }
+
+            [HarmonyPostfix, HarmonyPatch(typeof(Player), "Update")]
+            private static void PlayerUpdate_Postfix(Player __instance)
+            {
+                if (global::Player._mainPlayer == null)
                 {
-                    // If no map or it's the Sanctum, the desired room is global chat.
-                    desiredRoom = "";
+                    if (Main.IsReady)
+                    {
+                        LogDebug("YOUR PLAYER IS THERE, ITS RIGHT THERE BRO, LOOK AT IUT BRO ITS THIRGH THEREG AGESES.");
+                        Main.IsReady = false;
+                        Main.currentChatRoom = "";
+                    }
+                    return;
                 }
-                else
+                if (!Main.IsReady)
                 {
-                    // Otherwise, it's the formatted name of the new map.
-                    desiredRoom = FormatRoomName(_new._mapName);
+                    Main.IsReady = true;
+                }
+                if (!Main.ModEnabled.Value || __instance != global::Player._mainPlayer || AtlyssNetworkManager._current._soloMode) return;
+                
+                bool isInSanctum = Main.currentMapRoomName.Equals("Sanctum", StringComparison.OrdinalIgnoreCase);
+                if (isInSanctum)
+                {
+                    if (Main.currentChatRoom != "") UpdateChatRoom("");
+                    return;
                 }
 
-                // The simple anti-spam check. Only act if the desired room is different.
+                // The Simple Arbiter
+                string desiredRoom = Main.currentActiveTrigger;
+                if (string.IsNullOrEmpty(desiredRoom))
+                {
+                    desiredRoom = Main.currentMapRoomName ?? "";
+                }
+                
                 if (desiredRoom != Main.currentChatRoom)
                 {
                     UpdateChatRoom(desiredRoom);
                 }
             }
-            
+
             internal static void UpdateChatRoom(string desiredRoom)
             {
+                LogDebug("Updating chatroom name...");
                 if (string.IsNullOrEmpty(desiredRoom))
                 {
                     LeaveRoom();
@@ -198,11 +248,9 @@ namespace AutoMapRoom
             {
                 if (string.IsNullOrWhiteSpace(regionName)) return "";
                 if (Main.roomNameCache.TryGetValue(regionName, out string cachedName)) return cachedName;
-
                 const int maxRoomNameLength = 12;
                 string spacelessName = regionName.Replace(" ", "");
                 string formattedName;
-
                 if (spacelessName.Length > maxRoomNameLength)
                 {
                     StringBuilder acronymBuilder = new StringBuilder();
@@ -220,9 +268,13 @@ namespace AutoMapRoom
                 {
                     formattedName = spacelessName;
                 }
-                
                 Main.roomNameCache[regionName] = formattedName;
                 return formattedName;
+            }
+    
+            private static bool IsMainPlayer(Collider other)
+            {
+                return global::Player._mainPlayer != null && other.gameObject.transform.root.gameObject == global::Player._mainPlayer.gameObject;
             }
     
             private static void JoinRoom(string roomName)
@@ -231,14 +283,12 @@ namespace AutoMapRoom
                 if (player?._chatBehaviour != null)
                 {
                     bool isGlobalChatEnabled = (bool)_inGlobalChatField.GetValue(player._chatBehaviour);
-
                     if (Main.DisableGlobalOnRoomJoin.Value && isGlobalChatEnabled)
                     {
                         _inGlobalChatField.SetValue(player._chatBehaviour, false);
                         Main._modDisabledGlobalChat = true;
                         LogDebug("Silently disabled Global Chat.");
                     }
-                    
                     player._chatBehaviour._setChatChannel = ChatBehaviour.ChatChannel.ROOM;
                     Call_Cmd_JoinChatRoom(player._chatBehaviour, roomName);
                     LogDebug($"Switched to room: #{roomName}");
@@ -251,14 +301,12 @@ namespace AutoMapRoom
                 if (player?._chatBehaviour != null)
                 {
                     bool isGlobalChatEnabled = (bool)_inGlobalChatField.GetValue(player._chatBehaviour);
-                    
                     if (Main.DisableGlobalOnRoomJoin.Value && !isGlobalChatEnabled && Main._modDisabledGlobalChat)
                     {
                         _inGlobalChatField.SetValue(player._chatBehaviour, true);
                         Main._modDisabledGlobalChat = false;
                         LogDebug("Silently re-enabled Global Chat.");
                     }
-
                     player._chatBehaviour._setChatChannel = ChatBehaviour.ChatChannel.GLOBAL;
                     Call_Cmd_JoinChatRoom(player._chatBehaviour, "");
                     LogDebug("Returned to Global chat.");
