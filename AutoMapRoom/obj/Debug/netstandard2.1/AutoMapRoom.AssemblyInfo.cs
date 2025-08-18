@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AutoMapRoom")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.9.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.9+cb785967c16838d71072e4ceab441138074059c5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.9+cbc5390a3991e727fc94f70d636eb589ace24031")]
 [assembly: System.Reflection.AssemblyProductAttribute("AutoMapRoom")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AutoMapRoom")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.9.0")]
