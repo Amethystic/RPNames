@@ -3,6 +3,8 @@
 ## 1.0.9
 - True Field Name Priority
 - Ultra-Low Latency Debounce
+- Sex changelog
+- pls cache pls
 
 ## 1.0.8
 - How many fixes can we do speedrun?

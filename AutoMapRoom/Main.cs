@@ -17,14 +17,12 @@ namespace AutoMapRoom
     {
         // --- State Management ---
         public static List<string> triggersThisFrame = new List<string>();
-        public static List<string> activeTriggers = new List<string>();
         public static string currentMapRoomName = "";
         public static string currentChatRoom = "";
         public static Dictionary<string, string> roomNameCache = new Dictionary<string, string>();
         public static bool _modDisabledGlobalChat = false;
         
         // --- Debounce State ---
-        // A threshold of 1 feels instant but filters out single-frame physics flickers.
         public const int FrameDebounceThreshold = 1; 
         public static string pendingChatRoom = null;
         public static int pendingFrameCounter = 0;
@@ -188,7 +186,6 @@ namespace AutoMapRoom
                 if (_new == null) return;
                 
                 Main.currentMapRoomName = FormatRoomName(_new._mapName);
-                Main.activeTriggers.Clear();
                 Main.pendingChatRoom = null;
                 Main.pendingFrameCounter = 0;
             }
@@ -201,17 +198,14 @@ namespace AutoMapRoom
                 bool isInSanctum = Main.currentMapRoomName.Equals("Sanctum", StringComparison.OrdinalIgnoreCase);
                 if (isInSanctum)
                 {
-                    if (Main.currentChatRoom != "")
-                    {
-                        UpdateChatRoom("");
-                    }
+                    if (Main.currentChatRoom != "") UpdateChatRoom("");
+                    Main.triggersThisFrame.Clear(); // Clear trigger data while in Sanctum
                     return;
                 }
 
-                // --- Unified Debounce Logic ---
-                string desiredRoom = Main.activeTriggers.LastOrDefault() ?? Main.currentMapRoomName ?? "";
-                
-                // This logic is now unified again, but with a much lower threshold.
+                // --- Simplified Unified Debounce Logic ---
+                string desiredRoom = Main.triggersThisFrame.LastOrDefault() ?? Main.currentMapRoomName ?? "";
+
                 if (desiredRoom != Main.pendingChatRoom)
                 {
                     Main.pendingChatRoom = desiredRoom;
@@ -226,9 +220,7 @@ namespace AutoMapRoom
                 {
                     UpdateChatRoom(Main.pendingChatRoom);
                 }
-
-                // The triggers we were in *this frame* become the confirmed state for the *next frame*.
-                Main.activeTriggers = Main.triggersThisFrame.ToList();
+                
                 Main.triggersThisFrame.Clear();
             }
 
