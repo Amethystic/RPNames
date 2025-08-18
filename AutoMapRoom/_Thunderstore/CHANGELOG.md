@@ -2,7 +2,7 @@
 
 ## 1.0.9
 - True Field Name Priority
-- Ultra-Low Latency Debounce
+- Time-based Debounce
 - Sex changelog
 - pls cache pls
 

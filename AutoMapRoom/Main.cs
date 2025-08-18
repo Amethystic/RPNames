@@ -22,10 +22,10 @@ namespace AutoMapRoom
         public static Dictionary<string, string> roomNameCache = new Dictionary<string, string>();
         public static bool _modDisabledGlobalChat = false;
         
-        // --- Debounce State ---
-        public const int FrameDebounceThreshold = 1; 
+        // --- Time-Based Debounce State ---
+        public const float DebounceSeconds = 0.2f; // A small delay to filter out physics flicker
         public static string pendingChatRoom = null;
-        public static int pendingFrameCounter = 0;
+        public static float pendingStateEnterTime = 0f;
         
         internal static ManualLogSource Log;
 
@@ -116,7 +116,6 @@ namespace AutoMapRoom
                 else if (newEnabledState)
                 {
                     pendingChatRoom = null;
-                    pendingFrameCounter = 0;
                 }
             }
             
@@ -187,7 +186,6 @@ namespace AutoMapRoom
                 
                 Main.currentMapRoomName = FormatRoomName(_new._mapName);
                 Main.pendingChatRoom = null;
-                Main.pendingFrameCounter = 0;
             }
 
             [HarmonyPostfix, HarmonyPatch(typeof(Player), "Update")]
@@ -199,26 +197,27 @@ namespace AutoMapRoom
                 if (isInSanctum)
                 {
                     if (Main.currentChatRoom != "") UpdateChatRoom("");
-                    Main.triggersThisFrame.Clear(); // Clear trigger data while in Sanctum
+                    Main.triggersThisFrame.Clear();
                     return;
                 }
 
-                // --- Simplified Unified Debounce Logic ---
+                // --- Time-Based Debounce Logic ---
                 string desiredRoom = Main.triggersThisFrame.LastOrDefault() ?? Main.currentMapRoomName ?? "";
 
                 if (desiredRoom != Main.pendingChatRoom)
                 {
+                    // If the desired state changes, start the timer.
                     Main.pendingChatRoom = desiredRoom;
-                    Main.pendingFrameCounter = 0;
-                }
-                else
-                {
-                    Main.pendingFrameCounter++;
+                    Main.pendingStateEnterTime = Time.time;
                 }
 
-                if (Main.pendingFrameCounter >= Main.FrameDebounceThreshold && Main.pendingChatRoom != Main.currentChatRoom)
+                // Only act if the state has been stable for longer than our debounce period.
+                if (Time.time - Main.pendingStateEnterTime > Main.DebounceSeconds)
                 {
-                    UpdateChatRoom(Main.pendingChatRoom);
+                    if (Main.pendingChatRoom != Main.currentChatRoom)
+                    {
+                        UpdateChatRoom(Main.pendingChatRoom);
+                    }
                 }
                 
                 Main.triggersThisFrame.Clear();
