@@ -8,7 +8,7 @@
         <Product>AutoMapRoom</Product>
 
         <!-- Also set as plugin version and Thunderstore package version -->
-        <Version>1.0.8</Version>
+        <Version>1.0.9</Version>
         <PackageId>AutoMapRoom</PackageId>
     </PropertyGroup>
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.9
+- True Field Name Priority
+
 ## 1.0.8
 - How many fixes can we do speedrun?
   (fix x3)

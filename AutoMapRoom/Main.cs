@@ -217,8 +217,22 @@ namespace AutoMapRoom
                 }
                 Main.triggersThisFrame.Clear();
 
-                string desiredRoom = Main.activeTriggers.LastOrDefault() ?? Main.currentMapRoomName ?? "";
+                // --- PRIORITY LOGIC FIX ---
+                string desiredRoom;
+                string fieldNameRoom = Main.activeTriggers.LastOrDefault();
 
+                // If a specific Field Name is active, it ALWAYS takes priority.
+                if (!string.IsNullOrEmpty(fieldNameRoom))
+                {
+                    desiredRoom = fieldNameRoom;
+                }
+                // Only if there is NO active Field Name, we fall back to the Map Name.
+                else
+                {
+                    desiredRoom = Main.currentMapRoomName ?? "";
+                }
+                
+                // --- Debounce Logic ---
                 if (desiredRoom != Main.pendingChatRoom)
                 {
                     Main.pendingChatRoom = desiredRoom;
@@ -293,7 +307,6 @@ namespace AutoMapRoom
 
                     if (Main.DisableGlobalOnRoomJoin.Value && isGlobalChatEnabled)
                     {
-                        // CRITICAL FIX: Directly set the value instead of calling the UI method.
                         _inGlobalChatField.SetValue(player._chatBehaviour, false);
                         Main._modDisabledGlobalChat = true;
                         LogDebug("Silently disabled Global Chat.");
@@ -314,7 +327,6 @@ namespace AutoMapRoom
                     
                     if (Main.DisableGlobalOnRoomJoin.Value && !isGlobalChatEnabled && Main._modDisabledGlobalChat)
                     {
-                        // CRITICAL FIX: Directly set the value instead of calling the UI method.
                         _inGlobalChatField.SetValue(player._chatBehaviour, true);
                         Main._modDisabledGlobalChat = false;
                         LogDebug("Silently re-enabled Global Chat.");
