@@ -1,0 +1,81 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <!-- Mod and assembly info. These also determine the metadata for Thunderstore and whatnot. -->
+    <PropertyGroup>
+        <!-- Also set as plugin GUID -->
+        <ProjectGuid>s0apy.AutoMapRoom</ProjectGuid>
+
+        <!-- Also set as plugin name -->
+        <Product>AutoMapRoom</Product>
+
+        <!-- Also set as plugin version and Thunderstore package version -->
+        <Version>1.0.8</Version>
+        <PackageId>AutoMapRoom</PackageId>
+    </PropertyGroup>
+
+    <!-- Generic assembly info. -->
+    <PropertyGroup> <!-- Set this to your own root namespace -->
+        <DebugSymbols>true</DebugSymbols>
+        <DebugType>embedded</DebugType>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <LangVersion>latest</LangVersion>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Platforms>AnyCPU</Platforms>
+    </PropertyGroup>
+    
+    <PropertyGroup>
+        <AtlyssManaged>$(AtlyssPath)/ATLYSS_Data/Managed/</AtlyssManaged>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="BepInEx.Analyzers" PrivateAssets="all" Version="1.*" />
+        <PackageReference Include="BepInEx.Core" Version="5.4.*" />
+        <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2" PrivateAssets="all" />
+        
+        <PackageReference Include="UnityEngine.Modules" Version="2022.3.62">
+            <IncludeAssets>all</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        
+        <Reference Include="$(AtlyssManaged)Assembly-CSharp.dll" Publicize="true" Private="False" />
+        <Reference Include="$(AtlyssManaged)UnityEngine.UI.dll" Private="False" />
+        <Reference Include="$(AtlyssManaged)Newtonsoft.Json.dll" Private="False" />
+        <Reference Include="$(AtlyssManaged)Mirror.dll" Private="False" />
+        <Reference Include="$(AtlyssManaged)com.rlabrecque.steamworks.net.dll" Private="False" />
+        <Reference Include="Assembly-CSharp">
+          <HintPath>..\..\..\..\..\SteamLibrary\steamapps\common\ATLYSS\ATLYSS_Data\Managed\Assembly-CSharp.dll</HintPath>
+        </Reference>
+        <Reference Include="com.rlabrecque.steamworks.net">
+          <HintPath>..\..\..\..\..\SteamLibrary\steamapps\common\ATLYSS\ATLYSS_Data\Managed\com.rlabrecque.steamworks.net.dll</HintPath>
+        </Reference>
+        <Reference Include="FizzySteamworks">
+          <HintPath>..\..\..\..\..\SteamLibrary\steamapps\common\ATLYSS\ATLYSS_Data\Managed\FizzySteamworks.dll</HintPath>
+        </Reference>
+        <Reference Include="Mirror">
+          <HintPath>..\..\..\..\..\SteamLibrary\steamapps\common\ATLYSS\ATLYSS_Data\Managed\Mirror.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.CoreModule">
+          <HintPath>..\..\..\..\..\SteamLibrary\steamapps\common\ATLYSS\ATLYSS_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.IMGUIModule">
+          <HintPath>..\..\..\..\..\SteamLibrary\steamapps\common\ATLYSS\ATLYSS_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.InputLegacyModule">
+          <HintPath>..\..\..\..\..\SteamLibrary\steamapps\common\ATLYSS\ATLYSS_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.TextRenderingModule">
+          <HintPath>..\..\..\..\..\SteamLibrary\steamapps\common\ATLYSS\ATLYSS_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+        </Reference>
+
+        <!-- Reference mod packages from Thunderstore like this (works as if it's a NuGet package): -->
+        <!--
+        <PackageReference Include="Nessie-EasySettings" Version="1.1.3" Private="False" />
+        -->
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="_ThunderstoreBuild\" />
+    </ItemGroup>
+</Project>
