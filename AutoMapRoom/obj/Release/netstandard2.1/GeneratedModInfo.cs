@@ -6,6 +6,6 @@ namespace AutoMapRoom
     {
         public const string GUID = "s0apy.AutoMapRoom";
         public const string NAME = "AutoMapRoom";
-        public const string VERSION = "1.1.0";
+        public const string VERSION = "1.1.1";
     }
 }

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.1
+- fix
+
 ## 1.1.0
 - holy christ dillinger
 
