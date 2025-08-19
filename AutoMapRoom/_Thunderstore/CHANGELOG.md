@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.2
+- Turned all the toggles off by default
+
 ## 1.1.1
 - fix
 

@@ -38,9 +38,9 @@ namespace AutoMapRoom
         {
             Log = Logger;
             
-            ModEnabled = Config.Bind("General", "Enabled", true, "Globally enables or disables the auto room switching feature.");
+            ModEnabled = Config.Bind("General", "Enabled", false, "Globally enables or disables the auto room switching feature.");
             DebugLoggingEnabled = Config.Bind("General", "Debug Logging", false, "Enables verbose logging for troubleshooting.");
-            DisableGlobalOnRoomJoin = Config.Bind("General", "Mute Global in Rooms", true, "Automatically mutes the global chat channel when you join a map/region room.");
+            DisableGlobalOnRoomJoin = Config.Bind("General", "Mute Global in Rooms", false, "Automatically mutes the global chat channel when you join a map/region room.");
             _menuKey = Config.Bind("General", "Menu Key", KeyCode.F8, "The key to press to show/hide the settings menu.");
 
             Harmony.CreateAndPatchAll(typeof(HarmonyPatches.Hook));
