@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <!-- Mod and assembly info. These also determine the metadata for Thunderstore and whatnot. -->
     <PropertyGroup>
-        <Authors>s0apy.AutoMapRoom</Authors>
+        <Authors>s0apy.amr</Authors>
         <Product>AutoMapRoom</Product>
-        <Version>1.1.3</Version>
+        <Version>1.1.4</Version>
         <PackageId>AutoMapRoom</PackageId>
     </PropertyGroup>
 
@@ -22,7 +22,7 @@
     
     <PropertyGroup>
         <AtlyssPath>..\..\..\..\..\SteamLibrary\steamapps\common\ATLYSS</AtlyssPath>
-        <AtlyssManaged>$(AtlyssPath)/ATLYSS_Data/Managed/</AtlyssManaged>
+        <AtlyssManaged>$(AtlyssPath)\ATLYSS_Data\Managed\</AtlyssManaged>
     </PropertyGroup>
 
     <ItemGroup>

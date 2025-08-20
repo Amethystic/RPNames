@@ -4,8 +4,8 @@ namespace AutoMapRoom
 {
     static class ModInfo
     {
-        public const string GUID = "AutoMapRoom";
+        public const string GUID = "s0apy.amr";
         public const string NAME = "AutoMapRoom";
-        public const string VERSION = "1.1.3";
+        public const string VERSION = "1.1.4";
     }
 }

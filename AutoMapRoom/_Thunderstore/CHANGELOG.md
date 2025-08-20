@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.4
+- should fix menu cuz file path mistake
+
 ## 1.1.3
 - fixed references in the code to abide by the template
 - fixed project code
