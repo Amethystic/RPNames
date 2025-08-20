@@ -81,17 +81,6 @@ F:\Documents\CODE\Ours\AutoMapRoom\AutoMapRoom\bin\Release\netstandard2.1\UnityE
 F:\Documents\CODE\Ours\AutoMapRoom\AutoMapRoom\bin\Release\netstandard2.1\UnityEngine.WindModule.dll
 F:\Documents\CODE\Ours\AutoMapRoom\AutoMapRoom\bin\Release\netstandard2.1\UnityEngine.XRModule.dll
 F:\Documents\CODE\Ours\AutoMapRoom\AutoMapRoom\bin\Release\netstandard2.1\UnityEngine.dll
-F:\Documents\CODE\Ours\AutoMapRoom\AutoMapRoom\bin\Release\netstandard2.1\Assembly-CSharp.dll
-F:\Documents\CODE\Ours\AutoMapRoom\AutoMapRoom\bin\Release\netstandard2.1\com.rlabrecque.steamworks.net.dll
-F:\Documents\CODE\Ours\AutoMapRoom\AutoMapRoom\bin\Release\netstandard2.1\FizzySteamworks.dll
-F:\Documents\CODE\Ours\AutoMapRoom\AutoMapRoom\bin\Release\netstandard2.1\Mirror.dll
-F:\Documents\CODE\Ours\AutoMapRoom\AutoMapRoom\bin\Release\netstandard2.1\Unity.TextMeshPro.dll
-F:\Documents\CODE\Ours\AutoMapRoom\AutoMapRoom\bin\Release\netstandard2.1\Mirror.Components.dll
-F:\Documents\CODE\Ours\AutoMapRoom\AutoMapRoom\bin\Release\netstandard2.1\UnityEngine.UI.dll
-F:\Documents\CODE\Ours\AutoMapRoom\AutoMapRoom\bin\Release\netstandard2.1\Mirror.Transports.dll
-F:\Documents\CODE\Ours\AutoMapRoom\AutoMapRoom\bin\Release\netstandard2.1\Telepathy.dll
-F:\Documents\CODE\Ours\AutoMapRoom\AutoMapRoom\bin\Release\netstandard2.1\SimpleWebTransport.dll
-F:\Documents\CODE\Ours\AutoMapRoom\AutoMapRoom\bin\Release\netstandard2.1\kcp2k.dll
 F:\Documents\CODE\Ours\AutoMapRoom\AutoMapRoom\obj\Release\netstandard2.1\AutoMapRoom.csproj.AssemblyReference.cache
 F:\Documents\CODE\Ours\AutoMapRoom\AutoMapRoom\obj\Release\netstandard2.1\AutoMapRoom.IgnoresAccessChecksTo.cs
 F:\Documents\CODE\Ours\AutoMapRoom\AutoMapRoom\obj\Release\netstandard2.1\AutoMapRoom.GeneratedMSBuildEditorConfig.editorconfig

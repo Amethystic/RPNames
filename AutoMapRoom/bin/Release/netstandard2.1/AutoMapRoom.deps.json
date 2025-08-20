@@ -7,16 +7,12 @@
   "targets": {
     ".NETStandard,Version=v2.1": {},
     ".NETStandard,Version=v2.1/": {
-      "AutoMapRoom/1.1.2": {
+      "AutoMapRoom/1.1.3": {
         "dependencies": {
           "BepInEx.Analyzers": "1.0.8",
           "BepInEx.AssemblyPublicizer.MSBuild": "0.4.2",
           "BepInEx.Core": "5.4.21",
-          "UnityEngine.Modules": "2022.3.62",
-          "Assembly-CSharp": "0.0.0.0",
-          "com.rlabrecque.steamworks.net": "0.0.0.0",
-          "FizzySteamworks": "0.0.0.0",
-          "Mirror": "0.0.0.0"
+          "UnityEngine.Modules": "2022.3.62"
         },
         "runtime": {
           "AutoMapRoom.dll": {}
@@ -649,99 +645,11 @@
             "fileVersion": "0.0.0.0"
           }
         }
-      },
-      "Assembly-CSharp/0.0.0.0": {
-        "runtime": {
-          "Assembly-CSharp.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "com.rlabrecque.steamworks.net/0.0.0.0": {
-        "runtime": {
-          "com.rlabrecque.steamworks.net.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "FizzySteamworks/0.0.0.0": {
-        "runtime": {
-          "FizzySteamworks.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Mirror/0.0.0.0": {
-        "runtime": {
-          "Mirror.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.TextMeshPro/0.0.0.0": {
-        "runtime": {
-          "Unity.TextMeshPro.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Mirror.Components/0.0.0.0": {
-        "runtime": {
-          "Mirror.Components.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "UnityEngine.UI/1.0.0.0": {
-        "runtime": {
-          "UnityEngine.UI.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
-          }
-        }
-      },
-      "Mirror.Transports/0.0.0.0": {
-        "runtime": {
-          "Mirror.Transports.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Telepathy/0.0.0.0": {
-        "runtime": {
-          "Telepathy.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "SimpleWebTransport/1.6.0.0": {
-        "runtime": {
-          "SimpleWebTransport.dll": {
-            "assemblyVersion": "1.6.0.0",
-            "fileVersion": "1.6.0.0"
-          }
-        }
-      },
-      "kcp2k/0.0.0.0": {
-        "runtime": {
-          "kcp2k.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
       }
     }
   },
   "libraries": {
-    "AutoMapRoom/1.1.2": {
+    "AutoMapRoom/1.1.3": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
@@ -1011,61 +919,6 @@
       "sha512": "sha512-zpu5dELUCFt7Rvvzp50iTrfVusJg+2gmlcaytGEoHYuIP+AOv57X272czjp+sA8N1onPo/IiHFnOEFtT9rLJBA==",
       "path": "unityengine.modules/2022.3.62",
       "hashPath": "unityengine.modules.2022.3.62.nupkg.sha512"
-    },
-    "Assembly-CSharp/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "com.rlabrecque.steamworks.net/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "FizzySteamworks/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Mirror/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.TextMeshPro/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Mirror.Components/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "UnityEngine.UI/1.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Mirror.Transports/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Telepathy/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "SimpleWebTransport/1.6.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "kcp2k/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
     }
   }
 }

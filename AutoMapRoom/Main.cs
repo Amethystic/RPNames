@@ -141,8 +141,7 @@ namespace AutoMapRoom
                 _inGlobalChatField = AccessTools.Field(typeof(ChatBehaviour), "_inGlobalChat");
             }
             
-            [HarmonyReversePatch]
-            [HarmonyPatch(typeof(ChatBehaviour), "Cmd_JoinChatRoom")]
+            [HarmonyReversePatch, HarmonyPatch(typeof(ChatBehaviour), "Cmd_JoinChatRoom")]
             public static void Call_Cmd_JoinChatRoom(ChatBehaviour instance, string chatroom)
             {
                 throw new NotImplementedException("This is a stub and should have been patched by Harmony.");

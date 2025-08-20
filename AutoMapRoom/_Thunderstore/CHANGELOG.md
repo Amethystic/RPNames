@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.3
+- fixed references in the code to abide by the template
+- fixed project code
+
 ## 1.1.2
 - Turned all the toggles off by default
 

@@ -2,7 +2,7 @@
     <!-- Adapted from https://github.com/BepInEx/BepInEx.Templates/blob/master/BepInEx.PluginInfoProps/BepInEx.PluginInfoProps.props -->
     <Target Name="AddModInfo" BeforeTargets="BeforeCompile;CoreCompile" Inputs="$(MSBuildAllProjects)" Outputs="$(IntermediateOutputPath)GeneratedModInfo.cs">
         <PropertyGroup>
-            <BepInExPluginGuid Condition="'$(BepInExPluginGuid)' == ''">$(ProjectGuid)</BepInExPluginGuid>
+            <BepInExPluginGuid Condition="'$(BepInExPluginGuid)' == ''">$(Authors)</BepInExPluginGuid>
             <BepInExPluginName Condition="'$(BepInExPluginName)' == ''">$(Product)</BepInExPluginName>
             <BepInExPluginVersion Condition="'$(BepInExPluginVersion)' == ''">$(Version)</BepInExPluginVersion>
             <GeneratedText>
