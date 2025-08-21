@@ -2,9 +2,9 @@
     <!-- Mod and assembly info. These also determine the metadata for Thunderstore and whatnot. -->
     <PropertyGroup>
         <Authors>com.s0apy.I392d</Authors>
-        <Product>AutoMod</Product>
+        <Product>AutoModeration</Product>
         <Version>1.0.0</Version>
-        <PackageId>AutoMod</PackageId>
+        <PackageId>AutoModeration</PackageId>
     </PropertyGroup>
 
     <!-- Generic assembly info. -->

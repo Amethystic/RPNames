@@ -2,8 +2,8 @@
     <!-- Adapted from https://github.com/BepInEx/BepInEx.Templates/blob/master/BepInEx.PluginInfoProps/BepInEx.PluginInfoProps.props -->
     <Target Name="AddModInfo" BeforeTargets="BeforeCompile;CoreCompile" Inputs="$(MSBuildAllProjects)" Outputs="$(IntermediateOutputPath)GeneratedModInfo.cs">
         <PropertyGroup>
-            <BepInExPluginGuid Condition="'$(BepInExPluginGuid)' == ''">$(Authors)</BepInExPluginGuid>
-            <BepInExPluginName Condition="'$(BepInExPluginName)' == ''">$(Product)</BepInExPluginName>
+            <BepInExPluginGuid Condition="'$(BepInExPluginGuid)' == ''">$(ThunderstoreTeamName)</BepInExPluginGuid>
+            <BepInExPluginName Condition="'$(BepInExPluginName)' == ''">$(ThunderstorePackageName)</BepInExPluginName>
             <BepInExPluginVersion Condition="'$(BepInExPluginVersion)' == ''">$(Version)</BepInExPluginVersion>
             <GeneratedText>
                 <![CDATA[

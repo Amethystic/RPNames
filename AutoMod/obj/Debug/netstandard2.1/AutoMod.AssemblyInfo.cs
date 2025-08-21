@@ -10,11 +10,11 @@
 using System;
 using System.Reflection;
 
-[assembly: System.Reflection.AssemblyCompanyAttribute("com.s0apy.I392d")]
+[assembly: System.Reflection.AssemblyCompanyAttribute("c.s0apy")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1b86ff7b609a52147a3883f60927c6bea098d146")]
-[assembly: System.Reflection.AssemblyProductAttribute("AutoMod")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+096d4a993143e09daea5107531eed1e5bd8164f5")]
+[assembly: System.Reflection.AssemblyProductAttribute("AutoModeration")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AutoMod")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
 

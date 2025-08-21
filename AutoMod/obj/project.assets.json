@@ -2791,9 +2791,9 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "F:\\Documents\\CODE\\Ours\\AutoMod\\AutoMod\\AutoMod.csproj",
-      "projectName": "AutoMod",
-      "projectPath": "F:\\Documents\\CODE\\Ours\\AutoMod\\AutoMod\\AutoMod.csproj",
+      "projectUniqueName": "F:\\Documents\\CODE\\Ours\\AutoMod\\AutoMod\\AutoModeration.csproj",
+      "projectName": "AutoModeration",
+      "projectPath": "F:\\Documents\\CODE\\Ours\\AutoMod\\AutoMod\\AutoModeration.csproj",
       "packagesPath": "C:\\Users\\Richard\\.nuget\\packages\\",
       "outputPath": "F:\\Documents\\CODE\\Ours\\AutoMod\\AutoMod\\obj\\",
       "projectStyle": "PackageReference",

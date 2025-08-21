@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35208.52
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoMod", "AutoMod\AutoMod.csproj", "{2398F551-7F7D-41B9-8059-A1AB798BC13F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoModeration", "AutoMod\AutoModeration.csproj", "{2398F551-7F7D-41B9-8059-A1AB798BC13F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

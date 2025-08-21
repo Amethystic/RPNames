@@ -11,7 +11,7 @@ using System.Text.RegularExpressions;
 
 // Assumed Game-Specific classes: AtlyssNetworkManager, Player, ChatBehaviour, HostConsole
 
-namespace AutoMod
+namespace AutoModeration
 {
     public class WarningRecord
     {
