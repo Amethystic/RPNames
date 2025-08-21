@@ -8,12 +8,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
-// It's good practice to add a using statement for the game's main namespace if it exists
-// using ATLYSS; 
-
 namespace AutoMod
 {
-    // Helper class to define a filtering rule. Placed in the namespace for global access.
     public class BlockRule
     {
         public string Pattern { get; set; }
@@ -37,13 +33,12 @@ namespace AutoMod
         }
     }
 
-    // Enum for the different types of word matching.
     public enum MatchType
     {
-        Contains,   // *word*
-        StartsWith, // word*
-        EndsWith,   // *word
-        Exact       // word
+        Contains,
+        StartsWith,
+        EndsWith,
+        Exact
     }
 
     [BepInPlugin(ModInfo.GUID, ModInfo.NAME, ModInfo.VERSION)]
@@ -51,14 +46,12 @@ namespace AutoMod
     {
         internal static ManualLogSource Log;
 
-        // --- Parsed Rule Lists & State ---
         internal static List<BlockRule> ParsedBlockRules = new List<BlockRule>();
         internal static List<string> ParsedAllowedPhrases = new List<string>();
         internal static List<Regex> ParsedRegexPatterns = new List<Regex>();
         internal static Dictionary<string, int> PlayerWarningLevels = new Dictionary<string, int>();
         internal static List<string> MonitoredChannels = new List<string>();
 
-        // --- Configuration Entries ---
         internal static ConfigEntry<bool> AutoModEnabled;
         internal static ConfigEntry<string> MonitoredChatChannels;
         internal static ConfigEntry<string> BlockedWords;
@@ -75,7 +68,6 @@ namespace AutoMod
         {
             Log = Logger;
 
-            // --- Bind Configurations ---
             AutoModEnabled = Config.Bind("1. General", "Enabled", true,
                 "Enables the auto-moderator to block messages.");
 
@@ -109,7 +101,6 @@ namespace AutoMod
             ResetWarningsOnDisconnect = Config.Bind("5. Warning System", "Reset Warnings On Disconnect", true,
                 "If true, a player's warning count is cleared when they leave the server.");
 
-            // --- Initialize Systems ---
             UpdateMonitoredChannelsList();
             UpdateBlockRulesList();
             UpdateAllowedPhrasesList();
@@ -119,7 +110,6 @@ namespace AutoMod
             Log.LogInfo($"[{ModInfo.NAME} v{ModInfo.VERSION}] has loaded and patched successfully.");
         }
 
-        #region Config Update Methods
         private void UpdateMonitoredChannelsList()
         {
             if (string.IsNullOrWhiteSpace(MonitoredChatChannels.Value)) MonitoredChannels.Clear();
@@ -170,27 +160,23 @@ namespace AutoMod
                 catch (Exception ex) { Log.LogError($"[AUTOMOD] Invalid Regex pattern '{pattern}' skipped. Error: {ex.Message}"); }
             }
         }
-        #endregion
     }
 
     [HarmonyPatch]
     internal static class HarmonyPatches
     {
-        [HarmonyPrefix]
-        [HarmonyPatch(typeof(ChatBehaviour), "UserCode_Rpc_RecieveChatMessage__String__Boolean__ChatChannel")]
+        [HarmonyPrefix, HarmonyPatch(typeof(ChatBehaviour), "UserCode_Rpc_RecieveChatMessage__String__Boolean__ChatChannel")]
         internal static bool InterceptChatMessage_Prefix(ChatBehaviour __instance, string message, ChatBehaviour.ChatChannel _chatChannel)
         {
-            // First, check if we should even be moderating this message
             if (!Main.AutoModEnabled.Value || !Main.MonitoredChannels.Contains(_chatChannel.ToString().ToUpperInvariant()))
             {
-                return true; // Skip moderation
+                return true;
             }
 
             try
             {
                 string plainTextMessage = Regex.Replace(message, "<color=#([0-9a-fA-F]{6})>|</color>", string.Empty);
 
-                // Check allow list (whitelist)
                 foreach (string allowedPhrase in Main.ParsedAllowedPhrases)
                 {
                     if (plainTextMessage.IndexOf(allowedPhrase, StringComparison.OrdinalIgnoreCase) >= 0) return true;
@@ -206,17 +192,16 @@ namespace AutoMod
                     {
                         Main.Log.LogWarning($"[AUTOMOD] Infraction by [{playerName}] in channel [{_chatChannel}]. Reason: Matched {infractionReason}.");
                         ProcessInfraction(playerWhoSentMessage, playerName);
-                        return false; // Block the message
+                        return false;
                     }
                 }
             }
             catch (Exception ex) { Main.Log.LogError($"[AUTOMOD] Error during message interception: {ex}"); }
 
-            return true; // Message is clean
+            return true;
         }
-
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(HostConsole), "Destroy_PeerListEntry")]
+        
+        [HarmonyPostfix, HarmonyPatch(typeof(HostConsole), "Destroy_PeerListEntry")]
         internal static void OnPlayerDisconnect_Postfix(HostConsole __instance, int _connID)
         {
             if (!Main.ResetWarningsOnDisconnect.Value) return;
