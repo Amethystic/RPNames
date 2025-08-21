@@ -1,0 +1,9 @@
+{
+  "name": "AutoMod",
+  "version_number": "1.0.0",
+  "website_url": "https://store.steampowered.com/app/2768430/ATLYSS/",
+  "description": "Automods like Discord!",
+  "dependencies": [
+       "BepInEx-BepInExPack-5.4.2100"
+  ]
+}

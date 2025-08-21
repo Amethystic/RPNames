@@ -1,0 +1,3 @@
+# AutoMod
+
+## Automods like discord!
