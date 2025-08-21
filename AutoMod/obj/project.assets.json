@@ -2789,10 +2789,10 @@
     "C:\\Users\\Richard\\.nuget\\packages\\": {}
   },
   "project": {
-    "version": "1.0.0",
+    "version": "1.0.1",
     "restore": {
       "projectUniqueName": "F:\\Documents\\CODE\\Ours\\AutoMod\\AutoMod\\AutoModeration.csproj",
-      "projectName": "AutoModeration",
+      "projectName": "Auto Moderation",
       "projectPath": "F:\\Documents\\CODE\\Ours\\AutoMod\\AutoMod\\AutoModeration.csproj",
       "packagesPath": "C:\\Users\\Richard\\.nuget\\packages\\",
       "outputPath": "F:\\Documents\\CODE\\Ours\\AutoMod\\AutoMod\\obj\\",

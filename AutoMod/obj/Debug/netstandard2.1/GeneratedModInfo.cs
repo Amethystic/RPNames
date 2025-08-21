@@ -4,8 +4,8 @@ namespace AutoModeration
 {
     static class ModInfo
     {
-        public const string GUID = "s0apy";
+        public const string GUID = "com.s0apy";
         public const string NAME = "AutoModeration";
-        public const string VERSION = "1.0.0";
+        public const string VERSION = "1.0.1";
     }
 }

@@ -9,7 +9,7 @@
         <!-- Create a package? -->
         <CreateThunderstorePackage>true</CreateThunderstorePackage>
         <ThunderstorePackageName>AutoModeration</ThunderstorePackageName>
-        <ThunderstoreTeamName>s0apy</ThunderstoreTeamName>
+        <ThunderstoreTeamName>com.s0apy</ThunderstoreTeamName>
         <ThunderstorePackageDescription>Automods like Discord!</ThunderstorePackageDescription>
         <ThunderstoreWebsite>https://store.steampowered.com/app/2768430/ATLYSS/</ThunderstoreWebsite>
     </PropertyGroup>

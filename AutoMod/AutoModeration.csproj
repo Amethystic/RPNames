@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <!-- Mod and assembly info. These also determine the metadata for Thunderstore and whatnot. -->
     <PropertyGroup>
-        <Authors>com.s0apy.I392d</Authors>
-        <Product>AutoModeration</Product>
-        <Version>1.0.0</Version>
-        <PackageId>AutoModeration</PackageId>
+        <Authors>com.s0apy.AutoModeration</Authors>
+        <Product>Auto Moderation</Product>
+        <Version>1.0.1</Version>
+        <PackageId>Auto Moderation</PackageId>
     </PropertyGroup>
 
     <!-- Generic assembly info. -->
