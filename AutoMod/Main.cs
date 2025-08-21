@@ -71,8 +71,8 @@ namespace AutoMod
             AutoModEnabled = Config.Bind("1. General", "Enabled", true,
                 "Enables the auto-moderator to block messages.");
 
-            MonitoredChatChannels = Config.Bind("1. General", "Monitored Channels", "GLOBAL, ROOM",
-                "Comma-separated list of chat channels to monitor. (e.g., GLOBAL, ROOM, PARTY, WHISPER). Case-insensitive.");
+            MonitoredChatChannels = Config.Bind("1. General", "Monitored Channels", "GLOBAL",
+                "Comma-separated list of chat channels to monitor. (e.g., GLOBAL, ROOM, PARTY). Case-insensitive.");
 
             BlockedWords = Config.Bind("2. Word Filters", "Blocked Words", "*badword*, rude*, *insult",
                 "Comma-separated list of words/phrases to block. Use '*' for wildcards. Examples: '*word*' (contains), 'word*' (starts with), '*word' (ends with), 'word' (exact whole word).");

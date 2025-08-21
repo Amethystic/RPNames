@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("com.s0apy.I392d")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+527f82fbdf236cea643599c6e73cd71569102e4b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5eafb33292d6a0c69db4836659f228d3158512b9")]
 [assembly: System.Reflection.AssemblyProductAttribute("AutoMod")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AutoMod")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
