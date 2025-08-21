@@ -1,9 +1,0 @@
-{
-  "name": "AutoMapRoom",
-  "version_number": "1.1.4",
-  "website_url": "https://store.steampowered.com/app/2768430/ATLYSS/",
-  "description": "Keep organized with chats by automation | Works through room names to unclutter the chat",
-  "dependencies": [
-       "BepInEx-BepInExPack-5.4.2100"
-  ]
-}
