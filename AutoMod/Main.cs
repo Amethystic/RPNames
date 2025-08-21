@@ -4,12 +4,30 @@ using BepInEx.Logging;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
+// Assumed Game-Specific classes: AtlyssNetworkManager, Player, ChatBehaviour, HostConsole
+
 namespace AutoMod
 {
+    public class WarningRecord
+    {
+        public DateTime Timestamp { get; set; }
+        public string PlayerName { get; set; }
+        public string SteamID { get; set; }
+        public string TriggeringMessage { get; set; }
+        public int WarnCount { get; set; }
+        public int MaxWarnings { get; set; }
+
+        public override string ToString()
+        {
+            return $"[{Timestamp:yyyy-MM-dd HH:mm:ss}] Player: {PlayerName} (ID: {SteamID}) | Warning {WarnCount}/{MaxWarnings} | Trigger: \"{TriggeringMessage}\"";
+        }
+    }
+
     public class BlockRule
     {
         public string Pattern { get; set; }
@@ -45,6 +63,7 @@ namespace AutoMod
     public class Main : BaseUnityPlugin
     {
         internal static ManualLogSource Log;
+        internal static string WarningLogPath;
 
         internal static List<BlockRule> ParsedBlockRules = new List<BlockRule>();
         internal static List<string> ParsedAllowedPhrases = new List<string>();
@@ -53,6 +72,7 @@ namespace AutoMod
         internal static List<string> MonitoredChannels = new List<string>();
 
         internal static ConfigEntry<bool> AutoModEnabled;
+        internal static ConfigEntry<bool> DisableInSinglePlayer;
         internal static ConfigEntry<string> MonitoredChatChannels;
         internal static ConfigEntry<string> BlockedWords;
         internal static ConfigEntry<string> AllowedPhrases;
@@ -61,27 +81,32 @@ namespace AutoMod
         internal static ConfigEntry<string> HostAction;
         internal static ConfigEntry<bool> WarningSystemEnabled;
         internal static ConfigEntry<int> WarningsUntilAction;
-        internal static ConfigEntry<string> PublicWarningMessage;
         internal static ConfigEntry<bool> ResetWarningsOnDisconnect;
 
         private void Awake()
         {
             Log = Logger;
+            
+            string pluginFolder = Path.GetDirectoryName(Info.Location);
+            WarningLogPath = Path.Combine(pluginFolder, "AutoMod_WarningLog.txt");
 
             AutoModEnabled = Config.Bind("1. General", "Enabled", true,
                 "Enables the auto-moderator to block messages.");
+            
+            DisableInSinglePlayer = Config.Bind("1. General", "Disable in Single-Player", true,
+                "istg if u use ts on singleplayer i am NOT helping u fix this do not PM me.");
 
             MonitoredChatChannels = Config.Bind("1. General", "Monitored Channels", "GLOBAL",
                 "Comma-separated list of chat channels to monitor. (e.g., GLOBAL, ROOM, PARTY). Case-insensitive.");
 
             BlockedWords = Config.Bind("2. Word Filters", "Blocked Words", "*badword*, rude*, *insult",
-                "Comma-separated list of words/phrases to block. Use '*' for wildcards. Examples: '*word*' (contains), 'word*' (starts with), '*word' (ends with), 'word' (exact whole word).");
+                "Comma-separated list of words/phrases to block. Use '*' for wildcards.");
 
             AllowedPhrases = Config.Bind("2. Word Filters", "Allowed Phrases (Whitelist)", "grapefruit, have a nice day",
-                "Comma-separated list of phrases that are exempt from being blocked, even if they contain a blocked word.");
+                "Comma-separated list of phrases that are exempt from being blocked.");
 
             RegexPatterns = Config.Bind("3. Advanced Filters", "Regex Patterns", "",
-                "Comma-separated list of Regex patterns for advanced filtering. Invalid patterns will be ignored.");
+                "Comma-separated list of Regex patterns for advanced filtering.");
 
             EnableHostActions = Config.Bind("4. Punishments", "Enable Host Actions", true,
                 "If enabled, the host will automatically take action against players.");
@@ -95,9 +120,6 @@ namespace AutoMod
             WarningsUntilAction = Config.Bind("5. Warning System", "Warnings Until Action", 3,
                 "Number of infractions a player can have before the 'Action Type' is triggered.");
 
-            PublicWarningMessage = Config.Bind("5. Warning System", "Warning Message", "[SERVER] {PlayerName} has been warned for inappropriate language. ({WarnCount}/{MaxWarnings})",
-                "The message sent to public chat when a player is warned. Use {PlayerName}, {WarnCount}, {MaxWarnings}. Leave empty to disable.");
-
             ResetWarningsOnDisconnect = Config.Bind("5. Warning System", "Reset Warnings On Disconnect", true,
                 "If true, a player's warning count is cleared when they leave the server.");
 
@@ -107,7 +129,7 @@ namespace AutoMod
             UpdateRegexPatternsList();
 
             Harmony.CreateAndPatchAll(typeof(HarmonyPatches));
-            Log.LogInfo($"[{ModInfo.NAME} v{ModInfo.VERSION}] has loaded and patched successfully.");
+            Log.LogInfo($"[{ModInfo.NAME} v{ModInfo.VERSION}] has loaded. Warning log saved to: {WarningLogPath}");
         }
 
         private void UpdateMonitoredChannelsList()
@@ -168,6 +190,11 @@ namespace AutoMod
         [HarmonyPrefix, HarmonyPatch(typeof(ChatBehaviour), "UserCode_Rpc_RecieveChatMessage__String__Boolean__ChatChannel")]
         internal static bool InterceptChatMessage_Prefix(ChatBehaviour __instance, string message, ChatBehaviour.ChatChannel _chatChannel)
         {
+            if (Main.DisableInSinglePlayer.Value && AtlyssNetworkManager._current._soloMode)
+            {
+                return true;
+            }
+
             if (!Main.AutoModEnabled.Value || !Main.MonitoredChannels.Contains(_chatChannel.ToString().ToUpperInvariant()))
             {
                 return true;
@@ -190,8 +217,15 @@ namespace AutoMod
 
                     if (!string.IsNullOrEmpty(infractionReason))
                     {
-                        Main.Log.LogWarning($"[AUTOMOD] Infraction by [{playerName}] in channel [{_chatChannel}]. Reason: Matched {infractionReason}.");
-                        ProcessInfraction(playerWhoSentMessage, playerName);
+                        string logMessage = string.Format(
+                            "[AUTOMOD] Infraction by [{0}] in channel [{1}]. Reason: Matched {2}.",
+                            playerName,
+                            _chatChannel,
+                            infractionReason
+                        );
+                        Main.Log.LogWarning(logMessage);
+
+                        ProcessInfraction(playerWhoSentMessage, playerName, plainTextMessage);
                         return false;
                     }
                 }
@@ -229,13 +263,13 @@ namespace AutoMod
             return string.Empty;
         }
 
-        private static void ProcessInfraction(Player targetPlayer, string targetPlayerName)
+        private static void ProcessInfraction(Player targetPlayer, string targetPlayerName, string triggeringMessage)
         {
             if (Player._mainPlayer?._isHostPlayer != true) return;
 
             if (!Main.WarningSystemEnabled.Value)
             {
-                if (Main.EnableHostActions.Value) TakeHostAction(targetPlayer, targetPlayerName);
+                if (Main.EnableHostActions.Value) TakeHostAction(targetPlayer, targetPlayerName, triggeringMessage);
                 return;
             }
 
@@ -251,26 +285,25 @@ namespace AutoMod
             int currentWarnings = Main.PlayerWarningLevels[playerId];
             int maxWarnings = Main.WarningsUntilAction.Value;
 
+            var record = new WarningRecord
+            {
+                Timestamp = DateTime.Now,
+                PlayerName = targetPlayerName,
+                SteamID = playerId,
+                TriggeringMessage = triggeringMessage,
+                WarnCount = currentWarnings,
+                MaxWarnings = maxWarnings
+            };
+            SaveWarningToFile(record);
+
             if (currentWarnings >= maxWarnings)
             {
                 Main.Log.LogInfo($"[AUTOMOD] Player [{targetPlayerName}] reached {currentWarnings}/{maxWarnings} warnings. Taking action.");
-                if (Main.EnableHostActions.Value) TakeHostAction(targetPlayer, targetPlayerName);
-                Main.PlayerWarningLevels.Remove(playerId);
-            }
-            else
-            {
-                if (!string.IsNullOrEmpty(Main.PublicWarningMessage.Value))
-                {
-                    string warningMessage = Main.PublicWarningMessage.Value
-                        .Replace("{PlayerName}", targetPlayerName)
-                        .Replace("{WarnCount}", currentWarnings.ToString())
-                        .Replace("{MaxWarnings}", maxWarnings.ToString());
-                    HostConsole._current.Init_ServerMessage(warningMessage);
-                }
+                if (Main.EnableHostActions.Value) TakeHostAction(targetPlayer, targetPlayerName, triggeringMessage);
             }
         }
-
-        private static void TakeHostAction(Player targetPlayer, string targetPlayerName)
+        
+        private static void TakeHostAction(Player targetPlayer, string targetPlayerName, string triggeringMessage)
         {
             if (HostConsole._current == null || targetPlayer.connectionToClient == null) return;
             try
@@ -281,8 +314,23 @@ namespace AutoMod
 
                 Main.Log.LogInfo($"[AUTOMOD] Host executing command: \"{command}\" on player [{targetPlayerName}].");
                 HostConsole._current.Init_ServerMessage(command);
+                
+                string actionLog = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ACTION: Player {targetPlayerName} (ID: {targetPlayer._steamID}) was {action.ToUpper()}ed for accumulating too many warnings. Final straw: \"{triggeringMessage}\"";
+                SaveWarningToFile(actionLog);
             }
             catch (Exception ex) { Main.Log.LogError($"[AUTOMOD] Failed to perform host action on [{targetPlayerName}]: {ex}"); }
+        }
+
+        private static void SaveWarningToFile(object record)
+        {
+            try
+            {
+                File.AppendAllText(Main.WarningLogPath, record.ToString() + Environment.NewLine);
+            }
+            catch (Exception ex)
+            {
+                Main.Log.LogError($"[AUTOMOD] Failed to write to warning log: {ex.Message}");
+            }
         }
     }
 }
