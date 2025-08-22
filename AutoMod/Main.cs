@@ -65,11 +65,11 @@ namespace AutoModeration
         internal static ManualLogSource Log;
         internal static string WarningLogPath;
 
-        internal static List<BlockRule> ParsedBlockRules = new List<BlockRule>();
-        internal static List<string> ParsedAllowedPhrases = new List<string>();
-        internal static List<Regex> ParsedRegexPatterns = new List<Regex>();
-        internal static Dictionary<string, int> PlayerWarningLevels = new Dictionary<string, int>();
-        internal static List<string> MonitoredChannels = new List<string>();
+        internal static List<BlockRule> ParsedBlockRules = [];
+        internal static List<string> ParsedAllowedPhrases = [];
+        internal static List<Regex> ParsedRegexPatterns = [];
+        internal static Dictionary<string, int> PlayerWarningLevels = [];
+        internal static List<string> MonitoredChannels = [];
 
         internal static ConfigEntry<bool> AutoModEnabled;
         internal static ConfigEntry<bool> DisableInSinglePlayer;
@@ -204,19 +204,30 @@ namespace AutoModeration
             {
                 string plainTextMessage = Regex.Replace(message, "<color=#([0-9a-fA-F]{6})>|</color>", string.Empty);
 
-                foreach (string allowedPhrase in Main.ParsedAllowedPhrases)
-                {
-                    if (plainTextMessage.IndexOf(allowedPhrase, StringComparison.OrdinalIgnoreCase) >= 0) return true;
-                }
-
                 FieldInfo playerField = typeof(ChatBehaviour).GetField("_player", BindingFlags.Instance | BindingFlags.NonPublic);
                 if (playerField?.GetValue(__instance) is Player playerWhoSentMessage)
                 {
                     string playerName = playerWhoSentMessage._nickname ?? "Unknown Player";
+                    
+                    // ===============================================================================
+                    // LOGIC FIX: Check for infractions FIRST.
+                    // ===============================================================================
                     string infractionReason = FindInfractionReason(plainTextMessage);
 
+                    // If a reason was found, we have a potential violation.
                     if (!string.IsNullOrEmpty(infractionReason))
                     {
+                        // Now, check for an exception in the allow list.
+                        foreach (string allowedPhrase in Main.ParsedAllowedPhrases)
+                        {
+                            if (plainTextMessage.IndexOf(allowedPhrase, StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                // An exception was found. Allow the message and stop processing.
+                                return true; 
+                            }
+                        }
+
+                        // No exception was found, so this is a confirmed violation. Proceed with punishment.
                         string logMessage = string.Format(
                             "[AUTOMOD] Infraction by [{0}] in channel [{1}]. Reason: Matched {2}.",
                             playerName,
@@ -226,12 +237,13 @@ namespace AutoModeration
                         Main.Log.LogWarning(logMessage);
 
                         ProcessInfraction(playerWhoSentMessage, playerName, plainTextMessage);
-                        return false;
+                        return false; // Block the message.
                     }
                 }
             }
             catch (Exception ex) { Main.Log.LogError($"[AUTOMOD] Error during message interception: {ex}"); }
 
+            // No infraction was found in the first place, so the message is clean.
             return true;
         }
         
