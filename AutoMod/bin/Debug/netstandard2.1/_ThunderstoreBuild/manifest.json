@@ -1,6 +1,6 @@
 {
   "name": "AutoModeration",
-  "version_number": "1.0.2",
+  "version_number": "1.0.3",
   "website_url": "https://store.steampowered.com/app/2768430/ATLYSS/",
   "description": "Automods like Discord!",
   "dependencies": [

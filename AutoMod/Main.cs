@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography; // Added for hashing
+using System.Text; // Added for hashing
 using System.Text.RegularExpressions;
 
 // Assumed Game-Specific classes: AtlyssNetworkManager, Player, ChatBehaviour, HostConsole
@@ -64,8 +66,10 @@ namespace AutoModeration
     {
         internal static ManualLogSource Log;
         internal static string WarningLogPath;
-
+        
         internal static List<BlockRule> ParsedBlockRules = [];
+        internal static HashSet<string> HashedBlockedWords = [];
+
         internal static List<string> ParsedAllowedPhrases = [];
         internal static List<Regex> ParsedRegexPatterns = [];
         internal static Dictionary<string, int> PlayerWarningLevels = [];
@@ -99,11 +103,11 @@ namespace AutoModeration
             MonitoredChatChannels = Config.Bind("1. General", "Monitored Channels", "GLOBAL",
                 "Comma-separated list of chat channels to monitor. (e.g., GLOBAL, ROOM, PARTY). Case-insensitive.");
 
-            BlockedWords = Config.Bind("2. Word Filters", "Blocked Words", "*badword*, rude*, *insult",
-                "Comma-separated list of words/phrases to block. Use '*' for wildcards.");
+            BlockedWords = Config.Bind("2. Word Filters", "Blocked Words", "*badword*, rude*, *insult, heck, crypto*",
+                "Comma-separated list of words/phrases to block. Use '*' for wildcards. Non-wildcard words are hashed for security.");
 
-            AllowedPhrases = Config.Bind("2. Word Filters", "Allowed Phrases (Whitelist)", "grapefruit, have a nice day",
-                "Comma-separated list of phrases that are exempt from being blocked.");
+            AllowedPhrases = Config.Bind("2. Word Filters", "Allowed Phrases (Whitelist)", "crypto, grapefruit, have a nice day",
+                "Comma-separated list of phrases that act as exceptions to your blocked words/patterns.");
 
             RegexPatterns = Config.Bind("3. Advanced Filters", "Regex Patterns", "",
                 "Comma-separated list of Regex patterns for advanced filtering.");
@@ -129,7 +133,21 @@ namespace AutoModeration
             UpdateRegexPatternsList();
 
             Harmony.CreateAndPatchAll(typeof(HarmonyPatches));
-            Log.LogInfo($"[{ModInfo.NAME} v{ModInfo.VERSION}] has loaded. Warning log saved to: {WarningLogPath}");
+            Log.LogInfo($"[{ModInfo.NAME} v{ModInfo.VERSION}] has loaded with cryptographic hashing. Warning log saved to: {WarningLogPath}");
+        }
+        
+        internal static string ComputeSha256Hash(string rawData)
+        {
+            using (SHA256 sha256Hash = SHA256.Create())
+            {
+                byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(rawData));
+                StringBuilder builder = new StringBuilder();
+                for (int i = 0; i < bytes.Length; i++)
+                {
+                    builder.Append(bytes[i].ToString("x2"));
+                }
+                return builder.ToString();
+            }
         }
 
         private void UpdateMonitoredChannelsList()
@@ -145,20 +163,32 @@ namespace AutoModeration
         private void UpdateBlockRulesList()
         {
             ParsedBlockRules.Clear();
+            HashedBlockedWords.Clear();
             if (string.IsNullOrWhiteSpace(BlockedWords.Value)) return;
+            
             var patterns = BlockedWords.Value.Split(',');
             foreach (var pattern in patterns)
             {
                 string trimmed = pattern.Trim();
                 if (string.IsNullOrEmpty(trimmed)) continue;
-                bool startsWithStar = trimmed.StartsWith("*");
-                bool endsWithStar = trimmed.EndsWith("*");
-                string corePattern = trimmed.Trim('*');
-                if (startsWithStar && endsWithStar) ParsedBlockRules.Add(new BlockRule { Pattern = corePattern, Type = MatchType.Contains });
-                else if (startsWithStar) ParsedBlockRules.Add(new BlockRule { Pattern = corePattern, Type = MatchType.EndsWith });
-                else if (endsWithStar) ParsedBlockRules.Add(new BlockRule { Pattern = corePattern, Type = MatchType.StartsWith });
-                else ParsedBlockRules.Add(new BlockRule { Pattern = trimmed, Type = MatchType.Exact });
+                
+                if (trimmed.Contains("*"))
+                {
+                    bool startsWithStar = trimmed.StartsWith("*");
+                    bool endsWithStar = trimmed.EndsWith("*");
+                    string corePattern = trimmed.Trim('*');
+                    
+                    if (startsWithStar && endsWithStar) ParsedBlockRules.Add(new BlockRule { Pattern = corePattern, Type = MatchType.Contains });
+                    else if (startsWithStar) ParsedBlockRules.Add(new BlockRule { Pattern = corePattern, Type = MatchType.EndsWith });
+                    else if (endsWithStar) ParsedBlockRules.Add(new BlockRule { Pattern = corePattern, Type = MatchType.StartsWith });
+                }
+                else 
+                {
+                    string hash = ComputeSha256Hash(trimmed.ToLowerInvariant());
+                    HashedBlockedWords.Add(hash);
+                }
             }
+            Log.LogInfo($"{HashedBlockedWords.Count} words hashed, {ParsedBlockRules.Count} wildcard rules loaded.");
         }
 
         private void UpdateAllowedPhrasesList()
@@ -203,47 +233,47 @@ namespace AutoModeration
             try
             {
                 string plainTextMessage = Regex.Replace(message, "<color=#([0-9a-fA-F]{6})>|</color>", string.Empty);
-
+                
                 FieldInfo playerField = typeof(ChatBehaviour).GetField("_player", BindingFlags.Instance | BindingFlags.NonPublic);
                 if (playerField?.GetValue(__instance) is Player playerWhoSentMessage)
                 {
                     string playerName = playerWhoSentMessage._nickname ?? "Unknown Player";
+            
+                    // --- THE FIX IS HERE ---
+                    // Step 1: Sanitize the message. Create a temporary copy and remove all allowed phrases from it.
+                    string messageToCheck = plainTextMessage;
+                    foreach(string allowedPhrase in Main.ParsedAllowedPhrases)
+                    {
+                        // Using Regex.Replace is more robust for case-insensitive replacements.
+                        messageToCheck = Regex.Replace(messageToCheck, Regex.Escape(allowedPhrase), string.Empty, RegexOptions.IgnoreCase);
+                    }
                     
-                    // ===============================================================================
-                    // LOGIC FIX: Check for infractions FIRST.
-                    // ===============================================================================
-                    string infractionReason = FindInfractionReason(plainTextMessage);
-
-                    // If a reason was found, we have a potential violation.
+                    // Step 2: Check the SANITIZED message for any infractions.
+                    string infractionReason = FindInfractionReason(messageToCheck);
+            
+                    // If a reason is found AFTER removing exceptions, it is a confirmed violation.
                     if (!string.IsNullOrEmpty(infractionReason))
                     {
-                        // Now, check for an exception in the allow list.
-                        foreach (string allowedPhrase in Main.ParsedAllowedPhrases)
-                        {
-                            if (plainTextMessage.IndexOf(allowedPhrase, StringComparison.OrdinalIgnoreCase) >= 0)
-                            {
-                                // An exception was found. Allow the message and stop processing.
-                                return true; 
-                            }
-                        }
-
-                        // No exception was found, so this is a confirmed violation. Proceed with punishment.
                         string logMessage = string.Format(
-                            "[AUTOMOD] Infraction by [{0}] in channel [{1}]. Reason: Matched {2}.",
+                            "[AUTOMOD] Infraction by [{0}] in channel [{1}]. Reason: {2}. Original Message: \"{3}\"",
                             playerName,
                             _chatChannel,
-                            infractionReason
+                            infractionReason,
+                            plainTextMessage // Log the original message for context
                         );
                         Main.Log.LogWarning(logMessage);
 
                         ProcessInfraction(playerWhoSentMessage, playerName, plainTextMessage);
-                        return false; // Block the message.
+                        return false; // Block the message
                     }
                 }
             }
-            catch (Exception ex) { Main.Log.LogError($"[AUTOMOD] Error during message interception: {ex}"); }
-
-            // No infraction was found in the first place, so the message is clean.
+            catch (Exception ex) 
+            { 
+                Main.Log.LogError($"[AUTOMOD] Error during message interception: {ex}"); 
+            }
+    
+            // If the sanitized message is clean, allow it.
             return true;
         }
         
@@ -261,20 +291,38 @@ namespace AutoModeration
                 }
             }
         }
-
+        
         private static string FindInfractionReason(string message)
         {
+            if (string.IsNullOrWhiteSpace(message)) return string.Empty;
+
             foreach (BlockRule rule in Main.ParsedBlockRules)
             {
-                if (rule.IsMatch(message)) return $"word rule '{rule.Pattern}'";
+                if (rule.IsMatch(message)) return $"matched wildcard rule '{rule.Pattern}'";
             }
+            
+            char[] delimiters = [' ', '.', ',', '!', '?', ';', ':', '-', '_', '\n', '\r'];
+            string[] words = message.Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string word in words)
+            {
+                if (string.IsNullOrWhiteSpace(word)) continue;
+                
+                string wordHash = Main.ComputeSha256Hash(word.ToLowerInvariant());
+                if (Main.HashedBlockedWords.Contains(wordHash))
+                {
+                    return $"matched hashed word '{word}'";
+                }
+            }
+            
             foreach (Regex regex in Main.ParsedRegexPatterns)
             {
-                if (regex.IsMatch(message)) return $"Regex pattern '{regex}'";
+                if (regex.IsMatch(message)) return $"matched Regex pattern '{regex}'";
             }
+
             return string.Empty;
         }
-
+        
         private static void ProcessInfraction(Player targetPlayer, string targetPlayerName, string triggeringMessage)
         {
             if (Player._mainPlayer?._isHostPlayer != true) return;
