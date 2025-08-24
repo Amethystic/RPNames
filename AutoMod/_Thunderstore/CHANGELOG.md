@@ -1,4 +1,7 @@
 # Changelog
+## 1.0.4
+- characther clone still gay
+
 ## 1.0.3
 - Fixed and added Hashing
 

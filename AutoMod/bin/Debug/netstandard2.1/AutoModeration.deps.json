@@ -7,7 +7,7 @@
   "targets": {
     ".NETStandard,Version=v2.1": {},
     ".NETStandard,Version=v2.1/": {
-      "AutoModeration/1.0.3": {
+      "AutoModeration/1.0.4": {
         "dependencies": {
           "BepInEx.Analyzers": "1.0.8",
           "BepInEx.AssemblyPublicizer.MSBuild": "0.4.2",
@@ -649,7 +649,7 @@
     }
   },
   "libraries": {
-    "AutoModeration/1.0.3": {
+    "AutoModeration/1.0.4": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
