@@ -170,6 +170,15 @@
           }
         }
       },
+      "Soggy_Pancake-CodeYapper/2.0.0": {
+        "type": "package",
+        "compile": {
+          "lib/netstandard2.0/CodeTalker.dll": {}
+        },
+        "runtime": {
+          "lib/netstandard2.0/CodeTalker.dll": {}
+        }
+      },
       "System.Collections/4.3.0": {
         "type": "package",
         "dependencies": {
@@ -894,6 +903,17 @@
         "lib/netstandard2.0/MonoMod.Utils.xml",
         "monomod.utils.21.12.13.1.nupkg.sha512",
         "monomod.utils.nuspec"
+      ]
+    },
+    "Soggy_Pancake-CodeYapper/2.0.0": {
+      "sha512": "ChSo5sHxSZ28PEadCilgIilK/YeDUFXplqhzdMZQk1WLZ3FLofE/oo0BLURT40WvOOpxTGZluVLPBQbAjsadAw==",
+      "type": "package",
+      "path": "soggy_pancake-codeyapper/2.0.0",
+      "files": [
+        ".nupkg.metadata",
+        "lib/netstandard2.0/CodeTalker.dll",
+        "soggy_pancake-codeyapper.2.0.0.nupkg.sha512",
+        "soggy_pancake-codeyapper.nuspec"
       ]
     },
     "System.Collections/4.3.0": {
@@ -2782,29 +2802,32 @@
       "BepInEx.Analyzers >= 1.*",
       "BepInEx.AssemblyPublicizer.MSBuild >= 0.4.2",
       "BepInEx.Core >= 5.4.*",
+      "Soggy_Pancake-CodeYapper >= 2.0.0",
       "UnityEngine.Modules >= 2022.3.62"
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Richard\\.nuget\\packages\\": {}
+    "C:\\Users\\soap\\.nuget\\packages\\": {}
   },
   "project": {
-    "version": "1.0.3",
+    "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "F:\\Documents\\CODE\\Ours\\AutoMod\\AutoMod\\AutoModeration.csproj",
-      "projectName": "Auto Moderation",
-      "projectPath": "F:\\Documents\\CODE\\Ours\\AutoMod\\AutoMod\\AutoModeration.csproj",
-      "packagesPath": "C:\\Users\\Richard\\.nuget\\packages\\",
-      "outputPath": "F:\\Documents\\CODE\\Ours\\AutoMod\\AutoMod\\obj\\",
+      "projectUniqueName": "D:\\Documents\\CODE\\Ours\\RoleplayTitles\\AutoMod\\RoleplayTitles.csproj",
+      "projectName": "Roleplay Titles",
+      "projectPath": "D:\\Documents\\CODE\\Ours\\RoleplayTitles\\AutoMod\\RoleplayTitles.csproj",
+      "packagesPath": "C:\\Users\\soap\\.nuget\\packages\\",
+      "outputPath": "D:\\Documents\\CODE\\Ours\\RoleplayTitles\\AutoMod\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "F:\\Documents\\CODE\\Ours\\AutoMod\\NuGet.Config",
-        "C:\\Users\\Richard\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "D:\\Documents\\CODE\\Ours\\RoleplayTitles\\NuGet.Config",
+        "C:\\Users\\soap\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "netstandard2.1"
       ],
       "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {},
         "https://nuget.bepinex.dev/v3/index.json": {},
         "https://nuget.windows10ce.com/nuget/v3/index.json": {}
@@ -2845,6 +2868,10 @@
             "target": "Package",
             "version": "[5.4.*, )"
           },
+          "Soggy_Pancake-CodeYapper": {
+            "target": "Package",
+            "version": "[2.0.0, )"
+          },
           "UnityEngine.Modules": {
             "suppressParent": "All",
             "target": "Package",
@@ -2867,7 +2894,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Users\\Richard\\.dotnet\\sdk\\9.0.303\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.305\\RuntimeIdentifierGraph.json"
       }
     }
   }

@@ -1,395 +1,315 @@
-﻿using BepInEx;
+﻿// ============== USING STATEMENTS ==============
+using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
+using UnityEngine;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Security.Cryptography; // Added for hashing
-using System.Text; // Added for hashing
-using System.Text.RegularExpressions;
+using System.Linq; // Added for the animation type picker
+// Required for the packet-based CodeTalker implementation
+using CodeTalker.Networking;
+using CodeTalker.Packets;
+using Newtonsoft.Json; // CodeTalker uses Newtonsoft.Json for serialization
 
-// Assumed Game-Specific classes: AtlyssNetworkManager, Player, ChatBehaviour, HostConsole
-
-namespace AutoModeration
+// ============== NAMESPACE DEFINITIONS ==============
+namespace RoleplayTitles
 {
-    public class WarningRecord
+    // Enum to define the available animation types.
+    public enum AnimationType
     {
-        public DateTime Timestamp { get; set; }
-        public string PlayerName { get; set; }
-        public string SteamID { get; set; }
-        public string TriggeringMessage { get; set; }
-        public int WarnCount { get; set; }
-        public int MaxWarnings { get; set; }
-
-        public override string ToString()
+        Static,
+        Scroll,
+        Rainbow,
+        Marquee
+    }
+    
+    // Packet definitions for network communication.
+    namespace Packets
+    {
+        public class SetRoleplayNamePacket : PacketBase
         {
-            return $"[{Timestamp:yyyy-MM-dd HH:mm:ss}] Player: {PlayerName} (ID: {SteamID}) | Warning {WarnCount}/{MaxWarnings} | Trigger: \"{TriggeringMessage}\"";
+            public override string PacketSourceGUID => ModInfo.GUID;
+            [JsonProperty] public string DesiredName { get; set; }
+            public SetRoleplayNamePacket() { }
+            public SetRoleplayNamePacket(string name) { DesiredName = name; }
         }
     }
 
-    public class BlockRule
-    {
-        public string Pattern { get; set; }
-        public MatchType Type { get; set; }
-
-        public bool IsMatch(string message)
-        {
-            switch (Type)
-            {
-                case MatchType.Contains:
-                    return message.IndexOf(Pattern, StringComparison.OrdinalIgnoreCase) >= 0;
-                case MatchType.StartsWith:
-                    return message.StartsWith(Pattern, StringComparison.OrdinalIgnoreCase);
-                case MatchType.EndsWith:
-                    return message.EndsWith(Pattern, StringComparison.OrdinalIgnoreCase);
-                case MatchType.Exact:
-                    return Regex.IsMatch(message, @"\b" + Regex.Escape(Pattern) + @"\b", RegexOptions.IgnoreCase);
-                default:
-                    return false;
-            }
-        }
-    }
-
-    public enum MatchType
-    {
-        Contains,
-        StartsWith,
-        EndsWith,
-        Exact
-    }
-
+    // ============== MAIN PLUGIN CLASS ==============
     [BepInPlugin(ModInfo.GUID, ModInfo.NAME, ModInfo.VERSION)]
+    [BepInDependency("CodeTalker", BepInDependency.DependencyFlags.SoftDependency)]
     public class Main : BaseUnityPlugin
     {
         internal static ManualLogSource Log;
-        internal static string WarningLogPath;
         
-        internal static List<BlockRule> ParsedBlockRules = [];
-        internal static HashSet<string> HashedBlockedWords = [];
+        // --- Configuration & UI ---
+        internal static ConfigEntry<string> RoleplayName;
+        private ConfigEntry<KeyCode> _menuKey;
+        
+        // --- Animation Configuration ---
+        internal static ConfigEntry<bool> AnimationEnabled;
+        internal static ConfigEntry<AnimationType> SelectedAnimationType;
+        internal static ConfigEntry<float> AnimationSpeed;
+        internal static ConfigEntry<int> MarqueeWidth;
 
-        internal static List<string> ParsedAllowedPhrases = [];
-        internal static List<Regex> ParsedRegexPatterns = [];
-        internal static Dictionary<string, int> PlayerWarningLevels = [];
-        internal static List<string> MonitoredChannels = [];
-
-        internal static ConfigEntry<bool> AutoModEnabled;
-        internal static ConfigEntry<bool> DisableInSinglePlayer;
-        internal static ConfigEntry<string> MonitoredChatChannels;
-        internal static ConfigEntry<string> BlockedWords;
-        internal static ConfigEntry<string> AllowedPhrases;
-        internal static ConfigEntry<string> RegexPatterns;
-        internal static ConfigEntry<bool> EnableHostActions;
-        internal static ConfigEntry<string> HostAction;
-        internal static ConfigEntry<bool> WarningSystemEnabled;
-        internal static ConfigEntry<int> WarningsUntilAction;
-        internal static ConfigEntry<bool> ResetWarningsOnDisconnect;
+        private bool _showMenu = false;
+        private Rect _windowRect = new Rect(20, 20, 320, 300);
+        private string _nameInput = "";
+        private bool _showAnimationPicker = false;
+        internal static bool _isCodeTalkerLoaded = false; // Changed to internal
+        
+        // --- Animation State Variables ---
+        private bool _isAnimating = false;
+        private string _animationText = "";
+        private float _animationTimer = 0f;
+        
+        private int _animationIndex = 0;
+        private bool _isAnimatingForward = true;
+        private float _rainbowHue = 0f;
 
         private void Awake()
         {
             Log = Logger;
             
-            string pluginFolder = Path.GetDirectoryName(Info.Location);
-            WarningLogPath = Path.Combine(pluginFolder, "AutoMod_WarningLog.txt");
-
-            AutoModEnabled = Config.Bind("1. General", "Enabled", true,
-                "Enables the auto-moderator to block messages.");
+            // --- Configuration Binding ---
+            RoleplayName = Config.Bind("1. General", "Saved Name", "", "Your saved roleplay name. Supports TextMeshPro color tags.");
+            _menuKey = Config.Bind("1. General", "Menu Key", KeyCode.F8, "The key to press to show/hide the settings menu.");
             
-            DisableInSinglePlayer = Config.Bind("1. General", "Disable in Single-Player", true,
-                "istg if u use ts on singleplayer i am NOT helping u fix this do not PM me.");
+            // --- Animation Binding ---
+            AnimationEnabled = Config.Bind("2. Animation", "Enable Animation", false, "Animate your roleplay name.");
+            SelectedAnimationType = Config.Bind("2. Animation", "Animation Type", AnimationType.Scroll, "The type of animation to apply (Scroll, Rainbow, Marquee).");
+            AnimationSpeed = Config.Bind("2. Animation", "Animation Speed", 0.15f, "Delay in seconds between animation frames (lower is faster).");
+            MarqueeWidth = Config.Bind("2. Animation", "Marquee Width", 16, "The character width of the Marquee scrolling animation.");
 
-            MonitoredChatChannels = Config.Bind("1. General", "Monitored Channels", "GLOBAL",
-                "Comma-separated list of chat channels to monitor. (e.g., GLOBAL, ROOM, PARTY). Case-insensitive.");
+            _nameInput = RoleplayName.Value;
 
-            BlockedWords = Config.Bind("2. Word Filters", "Blocked Words", "*badword*, rude*, *insult, heck, crypto*",
-                "Comma-separated list of words/phrases to block. Use '*' for wildcards. Non-wildcard words are hashed for security.");
-
-            AllowedPhrases = Config.Bind("2. Word Filters", "Allowed Phrases (Whitelist)", "crypto, grapefruit, have a nice day",
-                "Comma-separated list of phrases that act as exceptions to your blocked words/patterns.");
-
-            RegexPatterns = Config.Bind("3. Advanced Filters", "Regex Patterns", "",
-                "Comma-separated list of Regex patterns for advanced filtering.");
-
-            EnableHostActions = Config.Bind("4. Punishments", "Enable Host Actions", true,
-                "If enabled, the host will automatically take action against players.");
-
-            HostAction = Config.Bind("4. Punishments", "Action Type", "Kick",
-                new ConfigDescription("The action to take when a player reaches the warning limit.", new AcceptableValueList<string>("Kick", "Ban")));
-
-            WarningSystemEnabled = Config.Bind("5. Warning System", "Enabled", true,
-                "Enable the progressive warning system. If false, punishments are immediate.");
-
-            WarningsUntilAction = Config.Bind("5. Warning System", "Warnings Until Action", 3,
-                "Number of infractions a player can have before the 'Action Type' is triggered.");
-
-            ResetWarningsOnDisconnect = Config.Bind("5. Warning System", "Reset Warnings On Disconnect", true,
-                "If true, a player's warning count is cleared when they leave the server.");
-
-            UpdateMonitoredChannelsList();
-            UpdateBlockRulesList();
-            UpdateAllowedPhrasesList();
-            UpdateRegexPatternsList();
-
+            // CORRECTED: Only check for CodeTalker's existence here. Do not register listeners yet.
+            if (Type.GetType("CodeTalker.Networking.CodeTalkerNetwork, CodeTalker") != null)
+            {
+                _isCodeTalkerLoaded = true;
+                Log.LogInfo("CodeTalker found. Network features will be enabled when the player is ready.");
+            }
+            else
+            {
+                Log.LogWarning("CodeTalker not found. Multiplayer features will be disabled.");
+            }
+            
+            if (AnimationEnabled.Value && !string.IsNullOrEmpty(_nameInput))
+            {
+                StartAnimation();
+            }
+            
             Harmony.CreateAndPatchAll(typeof(HarmonyPatches));
-            Log.LogInfo($"[{ModInfo.NAME} v{ModInfo.VERSION}] has loaded with cryptographic hashing. Warning log saved to: {WarningLogPath}");
+            Log.LogInfo($"[{ModInfo.NAME} v{ModInfo.VERSION}] has loaded.");
         }
         
-        internal static string ComputeSha256Hash(string rawData)
+        public static void OnNameChangeRequestReceived(PacketHeader header, PacketBase packet)
         {
-            using (SHA256 sha256Hash = SHA256.Create())
+            if (packet is Packets.SetRoleplayNamePacket namePacket)
             {
-                byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(rawData));
-                StringBuilder builder = new StringBuilder();
-                for (int i = 0; i < bytes.Length; i++)
+                foreach (Player player in FindObjectsOfType<Player>())
                 {
-                    builder.Append(bytes[i].ToString("x2"));
+                    if (player.connectionToClient != null && (ulong)player.connectionToClient.connectionId == header.SenderID)
+                    {
+                        player.Network_globalNickname = namePacket.DesiredName;
+                        return;
+                    }
                 }
-                return builder.ToString();
             }
         }
-
-        private void UpdateMonitoredChannelsList()
+        
+        public static void SendNameToHost(string name)
         {
-            if (string.IsNullOrWhiteSpace(MonitoredChatChannels.Value)) MonitoredChannels.Clear();
-            else MonitoredChannels = MonitoredChatChannels.Value.Split(',')
-                .Select(c => c.Trim().ToUpperInvariant())
-                .Where(c => !string.IsNullOrEmpty(c))
-                .ToList();
-            Log.LogInfo($"Auto-moderator will monitor the following channels: {string.Join(", ", MonitoredChannels)}");
+            if (!_isCodeTalkerLoaded) return;
+            CodeTalkerNetwork.SendNetworkPacket(new Packets.SetRoleplayNamePacket(name));
         }
 
-        private void UpdateBlockRulesList()
+        private void Update()
         {
-            ParsedBlockRules.Clear();
-            HashedBlockedWords.Clear();
-            if (string.IsNullOrWhiteSpace(BlockedWords.Value)) return;
+            if (Input.GetKeyDown(_menuKey.Value))
+            {
+                _showMenu = !_showMenu;
+                if (!_showMenu) _showAnimationPicker = false;
+            }
+
+            if (!_isAnimating) return;
             
-            var patterns = BlockedWords.Value.Split(',');
-            foreach (var pattern in patterns)
+            _animationTimer += Time.deltaTime;
+            if (_animationTimer >= AnimationSpeed.Value)
             {
-                string trimmed = pattern.Trim();
-                if (string.IsNullOrEmpty(trimmed)) continue;
+                _animationTimer = 0f;
+                string nameToSend = "";
+
+                switch (SelectedAnimationType.Value)
+                {
+                    case AnimationType.Scroll:
+                        if (string.IsNullOrEmpty(_animationText)) break;
+                        if (_isAnimatingForward)
+                        {
+                            _animationIndex++;
+                            if (_animationIndex >= _animationText.Length) { _animationIndex = _animationText.Length; _isAnimatingForward = false; }
+                        }
+                        else
+                        {
+                            _animationIndex--;
+                            if (_animationIndex <= 1) { _animationIndex = 1; _isAnimatingForward = true; }
+                        }
+                        nameToSend = _animationText.Substring(0, _animationIndex);
+                        break;
+
+                    case AnimationType.Rainbow:
+                        if (string.IsNullOrEmpty(_animationText)) break;
+                        _rainbowHue = (_rainbowHue + 0.02f) % 1.0f;
+                        Color rainbowColor = Color.HSVToRGB(_rainbowHue, 1f, 1f);
+                        string hexColor = "#" + ColorUtility.ToHtmlStringRGB(rainbowColor);
+                        nameToSend = $"<color={hexColor}>{_animationText}</color>";
+                        break;
+                        
+                    case AnimationType.Marquee:
+                        if (string.IsNullOrEmpty(_animationText)) break;
+                        string padding = new string(' ', MarqueeWidth.Value);
+                        string fullMarqueeText = padding + _animationText + padding;
+                        _animationIndex = (_animationIndex + 1) % (fullMarqueeText.Length - MarqueeWidth.Value);
+                        nameToSend = fullMarqueeText.Substring(_animationIndex, MarqueeWidth.Value);
+                        break;
+                }
+
+                if (!string.IsNullOrEmpty(nameToSend))
+                {
+                    SendNameToHost(nameToSend);
+                }
+            }
+        }
+        
+        private void StartAnimation()
+        {
+            _isAnimating = true;
+            _animationText = _nameInput;
+            _animationIndex = 0;
+            _isAnimatingForward = true;
+            _rainbowHue = 0f;
+        }
+
+        private void StopAnimation(bool clearName = false)
+        {
+            _isAnimating = false;
+            if (clearName) SendNameToHost("");
+            else SendNameToHost(_nameInput);
+        }
+
+        private void OnGUI()
+        {
+            if (_showMenu)
+            {
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+                _windowRect = GUILayout.Window(1863, _windowRect, DrawSettingsWindow, "Roleplay Name Settings");
+            }
+        }
+
+        private void DrawSettingsWindow(int windowID)
+        {
+            GUILayout.Label("Set your global roleplay name/title.");
+            GUILayout.Label("Supports TextMeshPro tags, e.g., <color=red>Name</color>");
+            GUILayout.Space(10);
+            
+            _nameInput = GUILayout.TextField(_nameInput, 50);
+
+            AnimationEnabled.Value = GUILayout.Toggle(AnimationEnabled.Value, " Enable Animation");
+
+            if (AnimationEnabled.Value)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Animation Type:", GUILayout.Width(120));
+                if (GUILayout.Button(SelectedAnimationType.Value.ToString()))
+                {
+                    _showAnimationPicker = !_showAnimationPicker;
+                }
+                GUILayout.EndHorizontal();
+
+                if (_showAnimationPicker)
+                {
+                    string[] animationNames = Enum.GetNames(typeof(AnimationType)).Where(n => n != "Static").ToArray();
+                    int currentSelection = Array.IndexOf(animationNames, SelectedAnimationType.Value.ToString());
+                    int newSelection = GUILayout.SelectionGrid(currentSelection, animationNames, 3);
+                    if (newSelection != currentSelection)
+                    {
+                        SelectedAnimationType.Value = (AnimationType)Enum.Parse(typeof(AnimationType), animationNames[newSelection]);
+                        _showAnimationPicker = false;
+                    }
+                }
+
+                if (SelectedAnimationType.Value == AnimationType.Marquee)
+                {
+                    GUILayout.Label($"Marquee Width: {MarqueeWidth.Value}");
+                    MarqueeWidth.Value = (int)GUILayout.HorizontalSlider(MarqueeWidth.Value, 5, 40);
+                }
+            }
+            
+            if (GUILayout.Button("Set & Save Name"))
+            {
+                RoleplayName.Value = _nameInput;
+                Config.Save();
+
+                if (AnimationEnabled.Value && !string.IsNullOrEmpty(_nameInput) && SelectedAnimationType.Value != AnimationType.Static)
+                {
+                    StartAnimation();
+                }
+                else
+                {
+                    StopAnimation();
+                }
                 
-                if (trimmed.Contains("*"))
-                {
-                    bool startsWithStar = trimmed.StartsWith("*");
-                    bool endsWithStar = trimmed.EndsWith("*");
-                    string corePattern = trimmed.Trim('*');
-                    
-                    if (startsWithStar && endsWithStar) ParsedBlockRules.Add(new BlockRule { Pattern = corePattern, Type = MatchType.Contains });
-                    else if (startsWithStar) ParsedBlockRules.Add(new BlockRule { Pattern = corePattern, Type = MatchType.EndsWith });
-                    else if (endsWithStar) ParsedBlockRules.Add(new BlockRule { Pattern = corePattern, Type = MatchType.StartsWith });
-                }
-                else 
-                {
-                    string hash = ComputeSha256Hash(trimmed.ToLowerInvariant());
-                    HashedBlockedWords.Add(hash);
-                }
+                _showMenu = false;
             }
-            Log.LogInfo($"{HashedBlockedWords.Count} words hashed, {ParsedBlockRules.Count} wildcard rules loaded.");
-        }
 
-        private void UpdateAllowedPhrasesList()
-        {
-            if (string.IsNullOrWhiteSpace(AllowedPhrases.Value)) ParsedAllowedPhrases.Clear();
-            else ParsedAllowedPhrases = AllowedPhrases.Value.Split(',').Select(p => p.Trim()).Where(p => !string.IsNullOrEmpty(p)).ToList();
-        }
-
-        private void UpdateRegexPatternsList()
-        {
-            ParsedRegexPatterns.Clear();
-            if (string.IsNullOrWhiteSpace(RegexPatterns.Value)) return;
-            var patterns = RegexPatterns.Value.Split(',');
-            foreach (var pattern in patterns)
+            if (GUILayout.Button("Clear Name"))
             {
-                try
-                {
-                    var trimmedPattern = pattern.Trim();
-                    if (!string.IsNullOrEmpty(trimmedPattern)) ParsedRegexPatterns.Add(new Regex(trimmedPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase));
-                }
-                catch (Exception ex) { Log.LogError($"[AUTOMOD] Invalid Regex pattern '{pattern}' skipped. Error: {ex.Message}"); }
+                _nameInput = "";
+                RoleplayName.Value = "";
+                Config.Save();
+                StopAnimation(clearName: true);
             }
+            
+            GUI.DragWindow();
         }
     }
-
+    
+    // ============== HARMONY PATCHES ==============
     [HarmonyPatch]
     internal static class HarmonyPatches
     {
-        [HarmonyPrefix, HarmonyPatch(typeof(ChatBehaviour), "UserCode_Rpc_RecieveChatMessage__String__Boolean__ChatChannel")]
-        internal static bool InterceptChatMessage_Prefix(ChatBehaviour __instance, string message, ChatBehaviour.ChatChannel _chatChannel)
+        private static bool _listenersInitialized = false;
+
+        [HarmonyPostfix, HarmonyPatch(typeof(Player), "OnStartAuthority")]
+        private static void OnPlayerStart_Postfix(Player __instance)
         {
-            if (Main.DisableInSinglePlayer.Value && AtlyssNetworkManager._current._soloMode)
-            {
-                return true;
-            }
+            if (!__instance.isLocalPlayer) return;
 
-            if (!Main.AutoModEnabled.Value || !Main.MonitoredChannels.Contains(_chatChannel.ToString().ToUpperInvariant()))
+            // CORRECTED: This is the proper place to initialize network listeners.
+            if (Main._isCodeTalkerLoaded && !_listenersInitialized)
             {
-                return true;
-            }
-
-            try
-            {
-                string plainTextMessage = Regex.Replace(message, "<color=#([0-9a-fA-F]{6})>|</color>", string.Empty);
+                Main.Log.LogInfo("Player has authority. Initializing CodeTalker listeners...");
                 
-                FieldInfo playerField = typeof(ChatBehaviour).GetField("_player", BindingFlags.Instance | BindingFlags.NonPublic);
-                if (playerField?.GetValue(__instance) is Player playerWhoSentMessage)
+                // Only the host needs to listen for name change requests.
+                // We check the player's _isHostPlayer flag, which is now reliable.
+                if (__instance._isHostPlayer)
                 {
-                    string playerName = playerWhoSentMessage._nickname ?? "Unknown Player";
-            
-                    // --- THE FIX IS HERE ---
-                    // Step 1: Sanitize the message. Create a temporary copy and remove all allowed phrases from it.
-                    string messageToCheck = plainTextMessage;
-                    foreach(string allowedPhrase in Main.ParsedAllowedPhrases)
-                    {
-                        // Using Regex.Replace is more robust for case-insensitive replacements.
-                        messageToCheck = Regex.Replace(messageToCheck, Regex.Escape(allowedPhrase), string.Empty, RegexOptions.IgnoreCase);
-                    }
-                    
-                    // Step 2: Check the SANITIZED message for any infractions.
-                    string infractionReason = FindInfractionReason(messageToCheck);
-            
-                    // If a reason is found AFTER removing exceptions, it is a confirmed violation.
-                    if (!string.IsNullOrEmpty(infractionReason))
-                    {
-                        string logMessage = string.Format(
-                            "[AUTOMOD] Infraction by [{0}] in channel [{1}]. Reason: {2}. Original Message: \"{3}\"",
-                            playerName,
-                            _chatChannel,
-                            infractionReason,
-                            plainTextMessage // Log the original message for context
-                        );
-                        Main.Log.LogWarning(logMessage);
-
-                        ProcessInfraction(playerWhoSentMessage, playerName, plainTextMessage);
-                        return false; // Block the message
-                    }
+                    CodeTalkerNetwork.RegisterListener<Packets.SetRoleplayNamePacket>(Main.OnNameChangeRequestReceived);
+                    Main.Log.LogInfo("Host detected. Listening for name change requests.");
                 }
+                _listenersInitialized = true;
             }
-            catch (Exception ex) 
-            { 
-                Main.Log.LogError($"[AUTOMOD] Error during message interception: {ex}"); 
-            }
-    
-            // If the sanitized message is clean, allow it.
-            return true;
-        }
-        
-        [HarmonyPostfix, HarmonyPatch(typeof(HostConsole), "Destroy_PeerListEntry")]
-        internal static void OnPlayerDisconnect_Postfix(HostConsole __instance, int _connID)
-        {
-            if (!Main.ResetWarningsOnDisconnect.Value) return;
-            var entry = __instance._peerListEntries.FirstOrDefault(e => e._dataID == _connID);
-            if (entry?._peerPlayer != null && !string.IsNullOrEmpty(entry._peerPlayer._steamID))
+            
+            // This part of the logic remains the same. It runs after listeners are set up.
+            if (!Main.AnimationEnabled.Value || Main.SelectedAnimationType.Value == AnimationType.Static)
             {
-                if (Main.PlayerWarningLevels.ContainsKey(entry._peerPlayer._steamID))
+                string savedName = Main.RoleplayName.Value;
+                if (!string.IsNullOrEmpty(savedName))
                 {
-                    Main.PlayerWarningLevels.Remove(entry._peerPlayer._steamID);
-                    Main.Log.LogInfo($"[AUTOMOD] Cleared warnings for disconnected player: {entry._peerPlayer._nickname}");
+                    Main.Log.LogInfo("Player authority started. Sending saved roleplay name to host.");
+                    Main.SendNameToHost(savedName);
                 }
-            }
-        }
-        
-        private static string FindInfractionReason(string message)
-        {
-            if (string.IsNullOrWhiteSpace(message)) return string.Empty;
-
-            foreach (BlockRule rule in Main.ParsedBlockRules)
-            {
-                if (rule.IsMatch(message)) return $"matched wildcard rule '{rule.Pattern}'";
-            }
-            
-            char[] delimiters = [' ', '.', ',', '!', '?', ';', ':', '-', '_', '\n', '\r'];
-            string[] words = message.Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (string word in words)
-            {
-                if (string.IsNullOrWhiteSpace(word)) continue;
-                
-                string wordHash = Main.ComputeSha256Hash(word.ToLowerInvariant());
-                if (Main.HashedBlockedWords.Contains(wordHash))
-                {
-                    return $"matched hashed word '{word}'";
-                }
-            }
-            
-            foreach (Regex regex in Main.ParsedRegexPatterns)
-            {
-                if (regex.IsMatch(message)) return $"matched Regex pattern '{regex}'";
-            }
-
-            return string.Empty;
-        }
-        
-        private static void ProcessInfraction(Player targetPlayer, string targetPlayerName, string triggeringMessage)
-        {
-            if (Player._mainPlayer?._isHostPlayer != true) return;
-
-            if (!Main.WarningSystemEnabled.Value)
-            {
-                if (Main.EnableHostActions.Value) TakeHostAction(targetPlayer, targetPlayerName, triggeringMessage);
-                return;
-            }
-
-            string playerId = targetPlayer._steamID;
-            if (string.IsNullOrEmpty(playerId))
-            {
-                Main.Log.LogError($"[AUTOMOD] Cannot warn player [{targetPlayerName}] - they have no Steam ID.");
-                return;
-            }
-
-            if (!Main.PlayerWarningLevels.ContainsKey(playerId)) Main.PlayerWarningLevels[playerId] = 0;
-            Main.PlayerWarningLevels[playerId]++;
-            int currentWarnings = Main.PlayerWarningLevels[playerId];
-            int maxWarnings = Main.WarningsUntilAction.Value;
-
-            var record = new WarningRecord
-            {
-                Timestamp = DateTime.Now,
-                PlayerName = targetPlayerName,
-                SteamID = playerId,
-                TriggeringMessage = triggeringMessage,
-                WarnCount = currentWarnings,
-                MaxWarnings = maxWarnings
-            };
-            SaveWarningToFile(record);
-
-            if (currentWarnings >= maxWarnings)
-            {
-                Main.Log.LogInfo($"[AUTOMOD] Player [{targetPlayerName}] reached {currentWarnings}/{maxWarnings} warnings. Taking action.");
-                if (Main.EnableHostActions.Value) TakeHostAction(targetPlayer, targetPlayerName, triggeringMessage);
-            }
-        }
-        
-        private static void TakeHostAction(Player targetPlayer, string targetPlayerName, string triggeringMessage)
-        {
-            if (HostConsole._current == null || targetPlayer.connectionToClient == null) return;
-            try
-            {
-                int connectionId = targetPlayer.connectionToClient.connectionId;
-                string action = Main.HostAction.Value.ToLower();
-                string command = action == "kick" ? $"/kick {connectionId}" : $"/ban {connectionId}";
-
-                Main.Log.LogInfo($"[AUTOMOD] Host executing command: \"{command}\" on player [{targetPlayerName}].");
-                HostConsole._current.Init_ServerMessage(command);
-                
-                string actionLog = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ACTION: Player {targetPlayerName} (ID: {targetPlayer._steamID}) was {action.ToUpper()}ed for accumulating too many warnings. Final straw: \"{triggeringMessage}\"";
-                SaveWarningToFile(actionLog);
-            }
-            catch (Exception ex) { Main.Log.LogError($"[AUTOMOD] Failed to perform host action on [{targetPlayerName}]: {ex}"); }
-        }
-
-        private static void SaveWarningToFile(object record)
-        {
-            try
-            {
-                File.AppendAllText(Main.WarningLogPath, record.ToString() + Environment.NewLine);
-            }
-            catch (Exception ex)
-            {
-                Main.Log.LogError($"[AUTOMOD] Failed to write to warning log: {ex.Message}");
             }
         }
     }
