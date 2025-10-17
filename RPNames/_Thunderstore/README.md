@@ -1,5 +1,5 @@
 # RPNames
-**Version 1.0.0**
+**Version 1.2.0**
 
 Give yourself a custom, animated, and colorful roleplaying title above your name! All titles are synced with other players in multiplayer.
 
