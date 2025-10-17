@@ -5,14 +5,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="532a6414-527d-4259-b468-e95e45d60a04" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.TemplateMod/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.TemplateMod/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/RPNames/Main.cs" beforeDir="false" afterPath="$PROJECT_DIR$/RPNames/Main.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RPNames/_Thunderstore/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/RPNames/_Thunderstore/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RPNames/_ThunderstoreBuild/s0apy-RPNames-1.0.0.zip" beforeDir="false" afterPath="$PROJECT_DIR$/RPNames/_ThunderstoreBuild/s0apy-RPNames-1.0.0.zip" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/RPNames/bin/Release/netstandard2.1/RPNames.dll" beforeDir="false" afterPath="$PROJECT_DIR$/RPNames/bin/Release/netstandard2.1/RPNames.dll" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RPNames/bin/Release/netstandard2.1/_ThunderstoreBuild/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/RPNames/bin/Release/netstandard2.1/_ThunderstoreBuild/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/RPNames/bin/Release/netstandard2.1/_ThunderstoreBuild/RPNames.dll" beforeDir="false" afterPath="$PROJECT_DIR$/RPNames/bin/Release/netstandard2.1/_ThunderstoreBuild/RPNames.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/RPNames/obj/Release/netstandard2.1/RPNames.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/RPNames/obj/Release/netstandard2.1/RPNames.AssemblyInfo.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/RPNames/obj/Release/netstandard2.1/RPNames.AssemblyInfoInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/RPNames/obj/Release/netstandard2.1/RPNames.AssemblyInfoInputs.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/RPNames/obj/Release/netstandard2.1/RPNames.csproj.FileListAbsolute.txt" beforeDir="false" afterPath="$PROJECT_DIR$/RPNames/obj/Release/netstandard2.1/RPNames.csproj.FileListAbsolute.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/RPNames/obj/Release/netstandard2.1/RPNames.dll" beforeDir="false" afterPath="$PROJECT_DIR$/RPNames/obj/Release/netstandard2.1/RPNames.dll" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RPNames/obj/Release/netstandard2.1/RPNames.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/RPNames/obj/Release/netstandard2.1/RPNames.sourcelink.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -58,6 +59,8 @@
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/97a73be5f2cb45e69c7e9e923a0cf087120600/30/8bb89357/Player.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/97a73be5f2cb45e69c7e9e923a0cf087120600/61/46aa5016/ProfileDataManager.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/RPNames/Main.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://D:/Documents/CODE/Ours/RoleplayTitles/RPNames/Main.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/RPNames/obj/Release/netstandard2.1/RPNames.sourcelink.json" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
   <component name="ProblemsViewState">
@@ -129,7 +132,7 @@
       <workItem from="1756045536372" duration="668000" />
       <workItem from="1760618816353" duration="9306000" />
       <workItem from="1760631230055" duration="6203000" />
-      <workItem from="1760637510068" duration="20533000" />
+      <workItem from="1760637510068" duration="21093000" />
     </task>
     <task id="LOCAL-00001" summary="1.0.9">
       <option name="closed" value="true" />
@@ -491,7 +494,15 @@
       <option name="project" value="LOCAL" />
       <updated>1760637957619</updated>
     </task>
-    <option name="localTasksCounter" value="46" />
+    <task id="LOCAL-00046" summary="Final">
+      <option name="closed" value="true" />
+      <created>1760661063275</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1760661063275</updated>
+    </task>
+    <option name="localTasksCounter" value="47" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -504,7 +515,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="might have found universial fix" />
     <MESSAGE value="this works as fine" />
     <MESSAGE value="updated" />
     <MESSAGE value="nevermind" />
@@ -529,7 +539,8 @@
     <MESSAGE value="should fix issue with the names n shit idk lol" />
     <MESSAGE value="fix" />
     <MESSAGE value="push" />
-    <option name="LAST_COMMIT_MESSAGE" value="push" />
+    <MESSAGE value="Final" />
+    <option name="LAST_COMMIT_MESSAGE" value="Final" />
     <option name="GROUP_MULTIFILE_MERGE_BY_DIRECTORY" value="true" />
   </component>
   <component name="XDebuggerManager">
