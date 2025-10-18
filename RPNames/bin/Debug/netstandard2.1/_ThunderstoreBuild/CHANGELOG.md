@@ -1,13 +1,15 @@
 ## Changelog
+### 1.2.1
+- **Fixed:** Resolved a critical bug that caused the game to hang on the character screen when leaving one server and joining another. The mod's network state is now correctly reset on disconnect.
+- **Fixed:** The mod's custom UI style no longer "bleeds" into the main menu or other UIs after disconnecting from a server.
+- **Fixed:** Titles now display correctly for players who do not have a `@GlobalNickname` enabled.
+- **Fixed:** Local player's title color now loads correctly on entering the game, instead of appearing black until re-saved.
+- **Added:** A "Color Speed" slider to control the animation speed for Rainbow, Wave, and animated Gradient effects.
+
 ### 1.2.0
 - **Massive Network Overhaul:** Replaced all network packets with highly efficient binary serialization to eliminate JSON overhead and drastically reduce packet size.
-- **Bundled Syncing:** When a player joins a lobby, the host now sends all current player titles in a single, bundled packet. This massively reduces network traffic on player join.
-- **Client-Side Animations:** Fixed the root cause of network spam. Animations are now handled 100% client-side. A single packet is sent only when a player changes their title settings.
-- **Added Animation Speed Slider:** You can now control the speed of all text animations via a slider in the menu.
-- **Fixed:** Corrected a critical compilation error by properly implementing a custom binary packet base class compatible with the latest CodeTalker API.
-- **Fixed:** Corrected a logic error where title bracket styles (especially `None`) would not apply correctly for other players in the lobby.
-- **Fixed:** Titles will now display correctly for players who do not have a `@GlobalNickname`.
-- **Fixed:** Resolved a major bug that caused the custom GUI style to fail, preventing the menu from appearing or showing a default debug look. The menu is now stable and stylish!
+- **Bundled Syncing & Client-Side Animations:** Reworked the entire networking model to eliminate packet spam and reduce traffic on player join.
+- **Added Animation Speed Slider:** You can now control the speed of all text animations.
 
 ### 1.0.0
 - Initial release.

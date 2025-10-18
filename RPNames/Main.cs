@@ -143,7 +143,7 @@ namespace RPNames
         internal static bool IsReady = false;
         
         private static ConfigEntry<string> _characterProfilesJson;
-        internal static Dictionary<int, CharacterTitleProfile> AllCharacterProfiles = new Dictionary<int, CharacterTitleProfile>();
+        internal Dictionary<int, CharacterTitleProfile> AllCharacterProfiles = new Dictionary<int, CharacterTitleProfile>();
         internal static int CurrentCharacterSlot = -1;
         
         private ConfigEntry<KeyCode> _menuKey;
@@ -295,6 +295,21 @@ namespace RPNames
             switch (_menuState) { case MenuState.Opening: _animationProgress = Mathf.Clamp01(_animationProgress + Time.unscaledDeltaTime / AnimationDuration); if (_animationProgress >= 1f) _menuState = MenuState.Open; break; case MenuState.Closing: _animationProgress = Mathf.Clamp01(_animationProgress - Time.unscaledDeltaTime / AnimationDuration); if (_animationProgress <= 0f) _menuState = MenuState.Closed; break; }
             if (Input.GetKeyDown(_menuKey.Value)) { if (_menuState == MenuState.Open || _menuState == MenuState.Opening) { _menuState = MenuState.Closing; _showTextAnimPicker = _showColoringPicker = _showBracketPicker = _showPresetPicker = _showSingleColorPicker = _showGradientStartPicker = _showGradientEndPicker = false; } else { _menuState = MenuState.Opening; LoadUIFromProfile(CurrentCharacterSlot >= 0 ? CurrentCharacterSlot : 0); } }
 
+            // This block handles the local player's global nickname placeholder
+            if (Player._mainPlayer != null && IsReady)
+            {
+                bool hasProfile = CurrentCharacterSlot != -1 && AllCharacterProfiles.TryGetValue(CurrentCharacterSlot, out var profile) && !string.IsNullOrEmpty(profile.Title);
+                
+                if (hasProfile && string.IsNullOrEmpty(Player._mainPlayer._globalNickname))
+                {
+                    Player._mainPlayer._globalNickname = ".";
+                }
+                else if (!hasProfile && Player._mainPlayer._globalNickname == ".")
+                {
+                    Player._mainPlayer._globalNickname = "";
+                }
+            }
+
             foreach (var animator in AllPlayerAnimators.Values.ToList())
             {
                 if (!HarmonyPatches.PlayerProfiles.TryGetValue(animator.NetId, out var profile) || profile == null) { AllPlayerAnimators.Remove(animator.NetId); continue; }
@@ -362,7 +377,17 @@ namespace RPNames
         private void OnGUI()
         {
             if (_menuState == MenuState.Closed) return;
-            if (!_stylesInitialized) InitializeGUIStyles();
+            if (!_stylesInitialized)
+            {
+                try
+                {
+                    InitializeGUIStyles();
+                }
+                catch (Exception)
+                {
+                    //
+                }
+            }
             
             var originalSkin = GUI.skin;
             GUI.skin = _modSkin;
@@ -400,7 +425,7 @@ namespace RPNames
             GUILayout.Space(10); GUILayout.Label("--- Coloring ---"); GUILayout.BeginHorizontal(); GUILayout.Label("Effect:", GUILayout.Width(120)); if (GUILayout.Button(_uiEditingProfile.Coloring.ToString())) _showColoringPicker = !_showColoringPicker; GUILayout.EndHorizontal();
             if (_showColoringPicker) { string[] names = Enum.GetNames(typeof(ColoringType)); int sel = GUILayout.SelectionGrid((int)_uiEditingProfile.Coloring, names, 3); if (sel != (int)_uiEditingProfile.Coloring) { _uiEditingProfile.Coloring = (ColoringType)sel; _showColoringPicker = false; _showSingleColorPicker = _showGradientStartPicker = _showGradientEndPicker = false; } }
             GUIStyle disclaimerStyle = new GUIStyle(_modSkin.label) { fontStyle = FontStyle.Italic, normal = { textColor = Color.gray } };
-            Action<Action<string>> DrawColorPicker = (setter) => { GUILayout.BeginVertical(_modSkin.box); GUILayout.BeginHorizontal(); GUILayout.BeginVertical(GUILayout.ExpandWidth(true)); _uiEditingColor.r = GUILayout.HorizontalSlider(_uiEditingColor.r, 0, 1); _uiEditingColor.g = GUILayout.HorizontalSlider(_uiEditingColor.g, 0, 1); _uiEditingColor.b = GUILayout.HorizontalSlider(_uiEditingColor.b, 0, 1); GUILayout.EndVertical(); var oldBgColor = GUI.backgroundColor; GUI.backgroundColor = _uiEditingColor; GUILayout.Box("", new GUIStyle { normal = { background = Texture2D.whiteTexture } }, GUILayout.Width(40), GUILayout.Height(40)); GUI.backgroundColor = oldBgColor; GUILayout.EndHorizontal(); setter(ColorUtility.ToHtmlStringRGB(_uiEditingColor)); GUILayout.EndVertical(); };
+            Action<Action<string>> DrawColorPicker = (setter) => { GUILayout.BeginVertical(_modSkin.box); GUILayout.BeginHorizontal(); GUILayout.BeginVertical(GUILayout.ExpandWidth(true)); _uiEditingColor.r = GUILayout.HorizontalSlider(_uiEditingProfile.Coloring == ColoringType.Gradient ? _uiEditingColor.r : GUILayout.HorizontalSlider(_uiEditingColor.r, 0, 1), 0, 1); _uiEditingColor.g = GUILayout.HorizontalSlider(_uiEditingColor.g, 0, 1); _uiEditingColor.b = GUILayout.HorizontalSlider(_uiEditingColor.b, 0, 1); GUILayout.EndVertical(); var oldBgColor = GUI.backgroundColor; GUI.backgroundColor = _uiEditingColor; GUILayout.Box("", new GUIStyle { normal = { background = Texture2D.whiteTexture } }, GUILayout.Width(40), GUILayout.Height(40)); GUI.backgroundColor = oldBgColor; GUILayout.EndHorizontal(); setter(ColorUtility.ToHtmlStringRGB(_uiEditingColor)); GUILayout.EndVertical(); };
             if (_uiEditingProfile.Coloring == ColoringType.SingleColor) { GUILayout.BeginHorizontal(); GUILayout.Label("Hex Color", GUILayout.Width(80)); _uiEditingProfile.SingleHexColor = GUILayout.TextField(_uiEditingProfile.SingleHexColor, 6); if (GUILayout.Button("Pick", GUILayout.Width(50))) { _showSingleColorPicker = !_showSingleColorPicker; _showGradientStartPicker = _showGradientEndPicker = false; if (_showSingleColorPicker && !ColorUtility.TryParseHtmlString("#" + _uiEditingProfile.SingleHexColor, out _uiEditingColor)) _uiEditingColor = Color.white; } GUILayout.EndHorizontal(); if (_showSingleColorPicker) DrawColorPicker(hex => _uiEditingProfile.SingleHexColor = hex); }
             if (_uiEditingProfile.Coloring == ColoringType.Gradient) 
             { 
@@ -439,6 +464,7 @@ namespace RPNames
         internal static readonly Dictionary<uint, CharacterTitleProfile> PlayerProfiles = new Dictionary<uint, CharacterTitleProfile>();
         internal static readonly Dictionary<uint, string> CurrentPlayerTitles = new Dictionary<uint, string>();
         private static readonly FieldInfo _globalNicknameTextMeshField = AccessTools.Field(typeof(Player), "_globalNicknameTextMesh");
+        private static readonly FieldInfo _nicknameField = AccessTools.Field(typeof(Player), "_nickname");
         
         [HarmonyPostfix, HarmonyPatch(typeof(Player), "OnGameConditionChange")]
         private static void OnGameConditionChange_Postfix(Player __instance, GameCondition _newCondition)
@@ -448,7 +474,7 @@ namespace RPNames
             if (Main.IsReady)
             {
                 Main.CurrentCharacterSlot = ProfileDataManager._current.SelectedFileIndex;
-                if (Main.AllCharacterProfiles.TryGetValue(Main.CurrentCharacterSlot, out var profile))
+                if (Main.instance.AllCharacterProfiles.TryGetValue(Main.CurrentCharacterSlot, out var profile))
                 {
                     Main.instance.UpdateGradientCache(profile);
                     Main.SendTitleUpdate(profile);
@@ -462,7 +488,6 @@ namespace RPNames
                 CurrentPlayerTitles.Clear(); 
                 Main.AllPlayerAnimators.Clear();
                 _listenersInitialized = false;
-                if (Main.OriginalSkin != null) GUI.skin = Main.OriginalSkin;
             }
         }
 
@@ -475,7 +500,6 @@ namespace RPNames
             CurrentPlayerTitles.Clear(); 
             Main.AllPlayerAnimators.Clear();
             _listenersInitialized = false;
-            if (Main.OriginalSkin != null) GUI.skin = Main.OriginalSkin;
         }
 
         [HarmonyPostfix, HarmonyPatch(typeof(Player), "OnStartAuthority")]
@@ -500,15 +524,21 @@ namespace RPNames
             
             CurrentPlayerTitles.TryGetValue(__instance.netId, out var customTitle);
             
-            if (!PlayerProfiles.TryGetValue(__instance.netId, out var playerProfile))
+            CharacterTitleProfile playerProfile;
+            if (__instance.isLocalPlayer && Main.CurrentCharacterSlot != -1 && Main.instance.AllCharacterProfiles.TryGetValue(Main.CurrentCharacterSlot, out var localProfile))
+            {
+                playerProfile = localProfile;
+            }
+            else if (!PlayerProfiles.TryGetValue(__instance.netId, out playerProfile))
             {
                 playerProfile = new CharacterTitleProfile();
             }
             
             string originalGlobalName = __instance._globalNickname;
+            string characterName = __instance._nickname;
             string finalDisplayString;
 
-            if (!string.IsNullOrEmpty(originalGlobalName) || !string.IsNullOrEmpty(customTitle))
+            if (!string.IsNullOrEmpty(originalGlobalName) || !string.IsNullOrEmpty(customTitle) || !string.IsNullOrEmpty(characterName))
             {
                 string formattedTitle = "";
                 if (!string.IsNullOrEmpty(customTitle))
@@ -516,7 +546,16 @@ namespace RPNames
                     switch (playerProfile.BracketStyle) { case BracketType.Parentheses: formattedTitle = $"({customTitle})"; break; case BracketType.SquareBrackets: formattedTitle = $"[{customTitle}]"; break; case BracketType.Tilde: formattedTitle = $"~{customTitle}~"; break; case BracketType.Dash: formattedTitle = $"-{customTitle}-"; break; case BracketType.Plus: formattedTitle = $"+{customTitle}+"; break; case BracketType.Equals: formattedTitle = $"={customTitle}="; break; case BracketType.Asterisk: formattedTitle = $"*{customTitle}*"; break; case BracketType.Dollar: formattedTitle = $"${customTitle}$"; break; case BracketType.Hash: formattedTitle = $"#{customTitle}#"; break; case BracketType.Exclamation: formattedTitle = $"!{customTitle}!"; break; case BracketType.Pipe: formattedTitle = $"|{customTitle}|"; break; default: formattedTitle = customTitle; break; }
                 }
                 
-                string globalNamePart = string.IsNullOrEmpty(originalGlobalName) ? "" : "@" + originalGlobalName;
+                string globalNamePart = "";
+                if (!string.IsNullOrEmpty(originalGlobalName))
+                {
+                    globalNamePart = "@" + originalGlobalName;
+                }
+                else if (!string.IsNullOrEmpty(customTitle))
+                {
+                    globalNamePart = "@.";
+                }
+                
                 string prefix = playerProfile.AddGapAboveTitle && playerProfile.TitleOnNewLine ? "\n" : "";
 
                 var parts = new List<string>();
