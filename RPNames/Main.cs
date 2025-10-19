@@ -259,11 +259,30 @@ namespace RPNames
                 profile.TargetNetID = netId;
                 if (HarmonyPatches.PlayerProfiles.ContainsKey(netId)) HarmonyPatches.PlayerProfiles[netId] = profile;
                 else HarmonyPatches.PlayerProfiles.Add(netId, profile);
-                
-                if (instance.ShouldAnimate(profile)) { if (!AllPlayerAnimators.ContainsKey(netId)) AllPlayerAnimators.Add(netId, new PlayerTitleAnimator(netId)); }
+
+                if (AllPlayerAnimators.ContainsKey(netId))
+                {
+                    AllPlayerAnimators.Remove(netId);
+                }
+
+                if (instance.ShouldAnimate(profile))
+                {
+                    var newAnimator = new PlayerTitleAnimator(netId);
+                    AllPlayerAnimators.Add(netId, newAnimator);
+
+                    string initialAnimatedText = instance.GetAnimatedText(profile, newAnimator);
+                    string initialFinalTitle = instance.ApplyColoring(initialAnimatedText, profile, newAnimator);
+                    if (HarmonyPatches.CurrentPlayerTitles.ContainsKey(netId))
+                    {
+                        HarmonyPatches.CurrentPlayerTitles[netId] = initialFinalTitle;
+                    }
+                    else
+                    {
+                        HarmonyPatches.CurrentPlayerTitles.Add(netId, initialFinalTitle);
+                    }
+                }
                 else
                 {
-                    if (AllPlayerAnimators.ContainsKey(netId)) AllPlayerAnimators.Remove(netId);
                     string staticTitle = instance.ApplyColoring(profile.Title, profile, null);
                     if (HarmonyPatches.CurrentPlayerTitles.ContainsKey(netId)) HarmonyPatches.CurrentPlayerTitles[netId] = staticTitle;
                     else HarmonyPatches.CurrentPlayerTitles.Add(netId, staticTitle);
@@ -295,7 +314,6 @@ namespace RPNames
             switch (_menuState) { case MenuState.Opening: _animationProgress = Mathf.Clamp01(_animationProgress + Time.unscaledDeltaTime / AnimationDuration); if (_animationProgress >= 1f) _menuState = MenuState.Open; break; case MenuState.Closing: _animationProgress = Mathf.Clamp01(_animationProgress - Time.unscaledDeltaTime / AnimationDuration); if (_animationProgress <= 0f) _menuState = MenuState.Closed; break; }
             if (Input.GetKeyDown(_menuKey.Value)) { if (_menuState == MenuState.Open || _menuState == MenuState.Opening) { _menuState = MenuState.Closing; _showTextAnimPicker = _showColoringPicker = _showBracketPicker = _showPresetPicker = _showSingleColorPicker = _showGradientStartPicker = _showGradientEndPicker = false; } else { _menuState = MenuState.Opening; LoadUIFromProfile(CurrentCharacterSlot >= 0 ? CurrentCharacterSlot : 0); } }
 
-            // This block handles the local player's global nickname placeholder
             if (Player._mainPlayer != null && IsReady)
             {
                 bool hasProfile = CurrentCharacterSlot != -1 && AllCharacterProfiles.TryGetValue(CurrentCharacterSlot, out var profile) && !string.IsNullOrEmpty(profile.Title);
@@ -314,20 +332,65 @@ namespace RPNames
             {
                 if (!HarmonyPatches.PlayerProfiles.TryGetValue(animator.NetId, out var profile) || profile == null) { AllPlayerAnimators.Remove(animator.NetId); continue; }
                 
-                bool needsFrameUpdate = false;
+                bool needsTextFrameUpdate = false;
                 animator.AnimationTimer += Time.deltaTime;
-                if (animator.AnimationTimer >= profile.AnimationSpeed) { animator.AnimationTimer = 0f; needsFrameUpdate = true; }
+                if (animator.AnimationTimer >= profile.AnimationSpeed) { animator.AnimationTimer = 0f; needsTextFrameUpdate = true; }
 
+                bool needsColorFrameUpdate = false;
                 if (ShouldAnimateColor(profile))
                 {
                     animator.RainbowHue = (animator.RainbowHue + (Time.deltaTime * profile.ColorAnimationSpeed * 0.1f)) % 1.0f;
-                    needsFrameUpdate = true;
+                    needsColorFrameUpdate = true;
                 }
                 
-                if (profile.TextAnimation == TextAnimationType.Typewriter && animator.TypewriterState == TypewriterState.Blinking) { animator.TypewriterPauseTimer += Time.deltaTime; animator.TypewriterBlinkTimer += Time.deltaTime; if (animator.TypewriterBlinkTimer >= 0.5f) { animator.TypewriterBlinkTimer = 0f; animator.TypewriterCursorVisible = !animator.TypewriterCursorVisible; needsFrameUpdate = true; } if (animator.TypewriterPauseTimer >= 5f) { animator.TypewriterPauseTimer = 0f; animator.TypewriterState = TypewriterState.Backspacing; } }
-                else if (needsFrameUpdate && profile.TextAnimation == TextAnimationType.Typewriter) { switch (animator.TypewriterState) { case TypewriterState.Typing: if (animator.AnimationIndex < profile.Title.Length) animator.AnimationIndex++; else { animator.TypewriterState = TypewriterState.Blinking; animator.TypewriterPauseTimer = animator.TypewriterBlinkTimer = 0f; animator.TypewriterCursorVisible = true; } break; case TypewriterState.Backspacing: if (animator.AnimationIndex > 0) animator.AnimationIndex--; else animator.TypewriterState = TypewriterState.Typing; break; } }
+                if (profile.TextAnimation == TextAnimationType.Typewriter)
+                {
+                    if (animator.TypewriterState == TypewriterState.Blinking)
+                    {
+                        animator.TypewriterPauseTimer += Time.deltaTime;
+                        animator.TypewriterBlinkTimer += Time.deltaTime;
+                        if (animator.TypewriterBlinkTimer >= 0.5f)
+                        {
+                            animator.TypewriterBlinkTimer = 0f;
+                            animator.TypewriterCursorVisible = !animator.TypewriterCursorVisible;
+                            needsTextFrameUpdate = true; 
+                        }
+                        if (animator.TypewriterPauseTimer >= 5f)
+                        {
+                            animator.TypewriterPauseTimer = 0f;
+                            animator.TypewriterState = TypewriterState.Backspacing;
+                        }
+                    }
+                }
                 
-                if (needsFrameUpdate)
+                if (needsTextFrameUpdate)
+                {
+                    // =================================================================================
+                    // --- FIX START ---
+                    // All animation state logic is now centralized here and controlled by the timer.
+                    switch (profile.TextAnimation)
+                    {
+                        case TextAnimationType.Scroll:
+                            if (animator.IsAnimatingForward) { animator.AnimationIndex++; if (animator.AnimationIndex >= profile.Title.Length) { animator.AnimationIndex = profile.Title.Length; animator.IsAnimatingForward = false; } }
+                            else { animator.AnimationIndex--; if (animator.AnimationIndex <= 1) { animator.AnimationIndex = 1; animator.IsAnimatingForward = true; } }
+                            break;
+                        case TextAnimationType.Marquee:
+                            string padding = new string(' ', profile.MarqueeWidth);
+                            string fullMarqueeText = padding + profile.Title + padding;
+                            animator.AnimationIndex = (animator.AnimationIndex + 1) % (fullMarqueeText.Length - profile.MarqueeWidth);
+                            break;
+                        case TextAnimationType.Typewriter:
+                             switch (animator.TypewriterState)
+                             {
+                                 case TypewriterState.Typing: if (animator.AnimationIndex < profile.Title.Length) animator.AnimationIndex++; else { animator.TypewriterState = TypewriterState.Blinking; animator.TypewriterPauseTimer = animator.TypewriterBlinkTimer = 0f; animator.TypewriterCursorVisible = true; } break;
+                                 case TypewriterState.Backspacing: if (animator.AnimationIndex > 0) animator.AnimationIndex--; else animator.TypewriterState = TypewriterState.Typing; break;
+                             }
+                            break;
+                    }
+                    // --- FIX END ---
+                }
+
+                if (needsTextFrameUpdate || needsColorFrameUpdate)
                 {
                     string animatedText = GetAnimatedText(profile, animator);
                     string finalTitle = ApplyColoring(animatedText, profile, animator);
@@ -336,17 +399,31 @@ namespace RPNames
             }
         }
         
-        private string GetAnimatedText(CharacterTitleProfile profile, PlayerTitleAnimator animator)
+        // =================================================================================
+        // --- FIX START ---
+        // This method is now only responsible for formatting text based on the animator's
+        // current state. It no longer updates the state itself.
+        internal string GetAnimatedText(CharacterTitleProfile profile, PlayerTitleAnimator animator)
         {
             if (string.IsNullOrEmpty(profile.Title)) return "";
             switch (profile.TextAnimation)
             {
-                case TextAnimationType.Scroll: if (animator.IsAnimatingForward) { animator.AnimationIndex++; if (animator.AnimationIndex >= profile.Title.Length) { animator.AnimationIndex = profile.Title.Length; animator.IsAnimatingForward = false; } } else { animator.AnimationIndex--; if (animator.AnimationIndex <= 1) { animator.AnimationIndex = 1; animator.IsAnimatingForward = true; } } return profile.Title.Substring(0, animator.AnimationIndex);
-                case TextAnimationType.Marquee: string padding = new string(' ', profile.MarqueeWidth); string fullMarqueeText = padding + profile.Title + padding; animator.AnimationIndex = (animator.AnimationIndex + 1) % (fullMarqueeText.Length - profile.MarqueeWidth); return fullMarqueeText.Substring(animator.AnimationIndex, profile.MarqueeWidth);
-                case TextAnimationType.Typewriter: if(animator.AnimationIndex > profile.Title.Length) animator.AnimationIndex = profile.Title.Length; string visibleText = profile.Title.Substring(0, animator.AnimationIndex); if (animator.TypewriterState == TypewriterState.Blinking) return profile.Title + (animator.TypewriterCursorVisible ? "|" : ""); return visibleText + "|";
-                default: return profile.Title;
+                case TextAnimationType.Scroll:
+                    return profile.Title.Substring(0, animator.AnimationIndex);
+                case TextAnimationType.Marquee:
+                    string padding = new string(' ', profile.MarqueeWidth);
+                    string fullMarqueeText = padding + profile.Title + padding;
+                    return fullMarqueeText.Substring(animator.AnimationIndex, profile.MarqueeWidth);
+                case TextAnimationType.Typewriter:
+                    if (animator.AnimationIndex > profile.Title.Length) animator.AnimationIndex = profile.Title.Length;
+                    string visibleText = profile.Title.Substring(0, animator.AnimationIndex);
+                    if (animator.TypewriterState == TypewriterState.Blinking) return profile.Title + (animator.TypewriterCursorVisible ? "|" : "");
+                    return visibleText + "|";
+                default:
+                    return profile.Title;
             }
         }
+        // --- FIX END ---
         
         internal string ApplyColoring(string text, CharacterTitleProfile profile, PlayerTitleAnimator animator)
         {
@@ -479,15 +556,6 @@ namespace RPNames
                     Main.instance.UpdateGradientCache(profile);
                     Main.SendTitleUpdate(profile);
                 }
-            }
-            else 
-            { 
-                if (Main.CurrentCharacterSlot != -1) Main.SendTitleUpdate(null); 
-                Main.CurrentCharacterSlot = -1; 
-                PlayerProfiles.Clear(); 
-                CurrentPlayerTitles.Clear(); 
-                Main.AllPlayerAnimators.Clear();
-                _listenersInitialized = false;
             }
         }
 

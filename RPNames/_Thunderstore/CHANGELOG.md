@@ -1,4 +1,8 @@
 ## Changelog
+### 1.2.2
+- **Fixed:** Resolved a bug that caused player titles to disappear for the host when changing maps.
+- **Fixed:** Resolved a bug that caused the animation titles going crazy if mixed with rainbow/gradient animations.
+
 ### 1.2.1
 - **Fixed:** Resolved a critical bug that caused the game to hang on the character screen when leaving one server and joining another. The mod's network state is now correctly reset on disconnect.
 - **Fixed:** The mod's custom UI style no longer "bleeds" into the main menu or other UIs after disconnecting from a server.
