@@ -6,6 +6,6 @@ namespace RPNames
     {
         public const string GUID = "s0apy.RPNames.sftwre";
         public const string NAME = "RPNames";
-        public const string VERSION = "1.3.1";
+        public const string VERSION = "1.3.2";
     }
 }

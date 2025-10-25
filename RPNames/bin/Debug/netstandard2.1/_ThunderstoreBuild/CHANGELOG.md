@@ -1,4 +1,7 @@
 ## Changelog
+## 1.3.2
+- **UI:** Title/Pronoun limit is now 32 Chars max.
+
 ### 1.3.1
 - **Feature:** Added a dedicated Pronouns system. You can now add pronouns and select a bracket style for them in the settings menu, separate from the main title.
 - **Fixed:** Resolved a critical desynchronization bug that caused player titles to randomly not appear for other players. The fix ensures title visibility is consistent for everyone in the lobby.
