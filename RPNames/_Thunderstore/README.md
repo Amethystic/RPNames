@@ -2,8 +2,8 @@
 
 Give yourself a custom, animated, and colorful roleplaying title above your name! All titles are synced with other players in multiplayer.
 
-![Mod Screenshot](https://cdn.discordapp.com/attachments/1415048760018337913/1428540073158250556/image.png?ex=68f2df1e&is=68f18d9e&hm=f494e32b9e513341ddee9bcc75d6e737bf048b62e020f4e292958f05fa7c1d8f&)
-![Mod Gif](https://cdn.discordapp.com/attachments/1428470616079470672/1428542774768173176/ATLYSS_yO7pSs4zXT.gif?ex=68f2e1a2&is=68f19022&hm=ef5125b9b54185a5caff358dbf34b59d5af9609233f71b2ee581cce4651679a8&)
+![Mod Screenshot](https://cdn.discordapp.com/attachments/1428470616079470672/1428536905506750535/ATLYSS_ANl6Rncz0g.gif?ex=690356eb&is=6902056b&hm=a0ec49b8f1d96d5fa4565154533bdc27597aad11e92ef731fa435a2e0919f659&)
+
 ## Features
 - **Fully In-Game GUI:** No more editing config files! Press **F8** (configurable) to open a stylish, animated menu and configure your title on the fly.
 - **Per-Character Profiles:** Your title settings are saved for each character slot automatically.
