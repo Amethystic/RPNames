@@ -336,7 +336,7 @@ namespace RPNames
             // --- FIX START ---
             // Title and Pronoun character limits adjusted based on user feedback.
             GUILayout.Label("Title", new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold });
-            _uiEditingProfile.Title = GUILayout.TextField(_uiEditingProfile.Title, 32);
+            _uiEditingProfile.Title = GUILayout.TextField(_uiEditingProfile.Title, 50);
             // --- FIX END ---
             if (GUILayout.Button("Select a Preset")) _showPresetPicker = !_showPresetPicker;
             if (_showPresetPicker) { Vector2 presetScroll = Vector2.zero; presetScroll = GUILayout.BeginScrollView(presetScroll, GUILayout.Height(100)); foreach (string preset in _presetTitles) if (GUILayout.Button(preset)) { _uiEditingProfile.Title = preset; _showPresetPicker = false; } GUILayout.EndScrollView(); }
@@ -348,7 +348,7 @@ namespace RPNames
                 // =================================================================================
                 // --- FIX START ---
                 // Title and Pronoun character limits adjusted based on user feedback.
-                _uiEditingProfile.Pronouns = GUILayout.TextField(_uiEditingProfile.Pronouns, 32);
+                _uiEditingProfile.Pronouns = GUILayout.TextField(_uiEditingProfile.Pronouns, 50);
                 // --- FIX END ---
                 GUILayout.BeginHorizontal(); GUILayout.Label("Pronoun Brackets:", GUILayout.Width(120)); if (GUILayout.Button(_uiEditingProfile.PronounBracketStyle.ToString())) _showPronounBracketPicker = !_showPronounBracketPicker; GUILayout.EndHorizontal(); if (_showPronounBracketPicker) { string[] names = Enum.GetNames(typeof(BracketType)); int sel = GUILayout.SelectionGrid((int)_uiEditingProfile.PronounBracketStyle, names, 3); if (sel != (int)_uiEditingProfile.PronounBracketStyle) { _uiEditingProfile.PronounBracketStyle = (BracketType)sel; _showPronounBracketPicker = false; } }
             }
