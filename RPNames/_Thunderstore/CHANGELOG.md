@@ -1,7 +1,8 @@
 ## Changelog
-## 1.3.2 - x.x.4
+## 1.3.2 - x.x.5
 - **UI:** Title/Pronoun limit is now 32 -> 50 Chars max.
 - Changed pictures on Readme.
+- **Fixed:** Late-Join Sync issue.
 
 ### 1.3 - x.x.1
 - **Feature:** Added a dedicated Pronouns system. You can now add pronouns and select a bracket style for them in the settings menu, separate from the main title.

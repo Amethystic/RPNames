@@ -332,12 +332,8 @@ namespace RPNames
                 if (curColoring == ColoringType.Gradient || curColoring == ColoringType.SingleColor) GUILayout.Label("(RRGGBB format, no #)", new GUIStyle(_modSkin.label) { fontStyle = FontStyle.Italic, normal = { textColor = Color.gray } });
             }
 
-            // =================================================================================
-            // --- FIX START ---
-            // Title and Pronoun character limits adjusted based on user feedback.
             GUILayout.Label("Title", new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold });
             _uiEditingProfile.Title = GUILayout.TextField(_uiEditingProfile.Title, 50);
-            // --- FIX END ---
             if (GUILayout.Button("Select a Preset")) _showPresetPicker = !_showPresetPicker;
             if (_showPresetPicker) { Vector2 presetScroll = Vector2.zero; presetScroll = GUILayout.BeginScrollView(presetScroll, GUILayout.Height(100)); foreach (string preset in _presetTitles) if (GUILayout.Button(preset)) { _uiEditingProfile.Title = preset; _showPresetPicker = false; } GUILayout.EndScrollView(); }
             
@@ -345,11 +341,7 @@ namespace RPNames
             _uiEditingProfile.ShowPronouns = GUILayout.Toggle(_uiEditingProfile.ShowPronouns, " Show Pronouns");
             if (_uiEditingProfile.ShowPronouns)
             {
-                // =================================================================================
-                // --- FIX START ---
-                // Title and Pronoun character limits adjusted based on user feedback.
                 _uiEditingProfile.Pronouns = GUILayout.TextField(_uiEditingProfile.Pronouns, 50);
-                // --- FIX END ---
                 GUILayout.BeginHorizontal(); GUILayout.Label("Pronoun Brackets:", GUILayout.Width(120)); if (GUILayout.Button(_uiEditingProfile.PronounBracketStyle.ToString())) _showPronounBracketPicker = !_showPronounBracketPicker; GUILayout.EndHorizontal(); if (_showPronounBracketPicker) { string[] names = Enum.GetNames(typeof(BracketType)); int sel = GUILayout.SelectionGrid((int)_uiEditingProfile.PronounBracketStyle, names, 3); if (sel != (int)_uiEditingProfile.PronounBracketStyle) { _uiEditingProfile.PronounBracketStyle = (BracketType)sel; _showPronounBracketPicker = false; } }
             }
 
@@ -393,8 +385,20 @@ namespace RPNames
         private static void OnGameConditionChange_Postfix(Player __instance, GameCondition _newCondition) { if (__instance != Player._mainPlayer) return; Main.IsReady = (_newCondition == GameCondition.IN_GAME); if (Main.IsReady) { Main.CurrentCharacterSlot = ProfileDataManager._current.SelectedFileIndex; if (Main.instance.AllCharacterProfiles.TryGetValue(Main.CurrentCharacterSlot, out var profile)) { Main.instance.UpdateGradientCache(profile); Main.SendTitleUpdate(profile); } } }
         [HarmonyPostfix, HarmonyPatch(typeof(AtlyssNetworkManager), "OnStopClient")]
         private static void OnStopClient_Postfix() { Main.IsReady = false; Main.CurrentCharacterSlot = -1; PlayerProfiles.Clear(); CurrentPlayerTitles.Clear(); Main.AllPlayerAnimators.Clear(); _listenersInitialized = false; }
+        
         [HarmonyPostfix, HarmonyPatch(typeof(Player), "OnStartAuthority")]
-        private static void OnPlayerStart_Postfix(Player __instance) { if (!__instance.isLocalPlayer || !Main._isCodeTalkerLoaded) return; if (!_listenersInitialized) { CodeTalkerNetwork.RegisterBinaryListener<Packets.UpdateTitleProfilePacket>(Main.OnProfileUpdate); if (__instance._isHostPlayer) CodeTalkerNetwork.RegisterListener<Packets.RequestAllTitlesPacket>(Main.OnSyncRequest); _listenersInitialized = true; } Main.RequestFullTitleSync(); }
+        private static void OnPlayerStart_Postfix(Player __instance)
+        {
+            if (!__instance.isLocalPlayer || !Main._isCodeTalkerLoaded) return;
+            if (!_listenersInitialized)
+            {
+                CodeTalkerNetwork.RegisterBinaryListener<Packets.UpdateTitleProfilePacket>(Main.OnProfileUpdate);
+                CodeTalkerNetwork.RegisterBinaryListener<Packets.SyncAllProfilesPacket>(Main.OnFullSync);
+                if (__instance._isHostPlayer) CodeTalkerNetwork.RegisterListener<Packets.RequestAllTitlesPacket>(Main.OnSyncRequest);
+                _listenersInitialized = true;
+            }
+            Main.RequestFullTitleSync();
+        }
 
         private static string GetFormattedStringWithBrackets(string content, BracketType bracketType) { if (string.IsNullOrEmpty(content)) return ""; switch (bracketType) { case BracketType.Parentheses: return $"({content})"; case BracketType.SquareBrackets: return $"[{content}]"; case BracketType.Tilde: return $"~{content}~"; case BracketType.Dash: return $"-{content}-"; case BracketType.Plus: return $"+{content}+"; case BracketType.Equals: return $"={content}="; case BracketType.Asterisk: return $"*{content}*"; case BracketType.Dollar: return $"${content}$"; case BracketType.Hash: return $"#{content}#"; case BracketType.Exclamation: return $"!{content}!"; case BracketType.Pipe: return $"|{content}|"; default: return content; } }
         
