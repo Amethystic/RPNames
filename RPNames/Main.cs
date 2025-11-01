@@ -85,20 +85,83 @@ namespace RPNames
             {
                 if (profile == null) { writer.Write(false); return; }
                 writer.Write(true);
-                writer.Write(profile.Title); writer.Write((byte)profile.BracketStyle); writer.Write((byte)profile.TextAnimation); writer.Write((byte)profile.Coloring); writer.Write(profile.AnimationSpeed); writer.Write(profile.MarqueeWidth); writer.Write(profile.SingleHexColor); writer.Write(profile.GradientStartColor); writer.Write(profile.GradientEndColor); writer.Write(profile.AnimateGradient); writer.Write(profile.GradientSpread); writer.Write(profile.RainbowWaveSpread); writer.Write(profile.ColorAnimationSpeed);
-                writer.Write(profile.Pronouns); writer.Write(profile.ShowPronouns); writer.Write((byte)profile.PronounBracketStyle); writer.Write(profile.ShareTitleColoring); writer.Write((byte)profile.PronounColoring); writer.Write(profile.PronounSingleHexColor); writer.Write(profile.PronounGradientStartColor); writer.Write(profile.PronounGradientEndColor); writer.Write(profile.PronounAnimateGradient); writer.Write(profile.PronounGradientSpread); writer.Write(profile.PronounRainbowWaveSpread); writer.Write(profile.PronounColorAnimationSpeed);
-                writer.Write(profile.TitleOnNewLine); writer.Write(profile.AddGapAboveTitle);
+                // Title Properties
+                writer.Write(profile.Title); 
+                writer.Write((byte)profile.BracketStyle); 
+                writer.Write((byte)profile.TextAnimation); 
+                writer.Write((byte)profile.Coloring); 
+                writer.Write(profile.AnimationSpeed); 
+                writer.Write(profile.MarqueeWidth); 
+                writer.Write(profile.SingleHexColor); 
+                writer.Write(profile.GradientStartColor); 
+                writer.Write(profile.GradientEndColor); 
+                writer.Write(profile.AnimateGradient); 
+                writer.Write(profile.GradientSpread); 
+                writer.Write(profile.RainbowWaveSpread); 
+                writer.Write(profile.ColorAnimationSpeed);
+                // Pronoun Properties
+                writer.Write(profile.Pronouns); 
+                writer.Write(profile.ShowPronouns); 
+                writer.Write((byte)profile.PronounBracketStyle); 
+                writer.Write(profile.ShareTitleColoring); 
+                writer.Write((byte)profile.PronounColoring); 
+                writer.Write(profile.PronounSingleHexColor); 
+                writer.Write(profile.PronounGradientStartColor); 
+                writer.Write(profile.PronounGradientEndColor); 
+                writer.Write(profile.PronounAnimateGradient); 
+                writer.Write(profile.PronounGradientSpread); 
+                writer.Write(profile.PronounRainbowWaveSpread); 
+                writer.Write(profile.PronounColorAnimationSpeed);
+                // General Display Properties
+                writer.Write(profile.TitleOnNewLine); 
+                writer.Write(profile.AddGapAboveTitle);
             }
-
+            
+            // =================================================================================
+            // --- FIX START ---
+            // Rewrote the ReadProfile method to be more verbose and explicitly mirror the
+            // WriteProfile method. This prevents synchronization errors (EndOfStreamException)
+            // and improves readability and future maintenance.
+            // --- FIX END ---
             public static CharacterTitleProfile ReadProfile(BinaryReader reader)
             {
                 if (!reader.ReadBoolean()) return null;
-                return new CharacterTitleProfile
-                {
-                    Title = reader.ReadString(), BracketStyle = (BracketType)reader.ReadByte(), TextAnimation = (TextAnimationType)reader.ReadByte(), Coloring = (ColoringType)reader.ReadByte(), AnimationSpeed = reader.ReadSingle(), MarqueeWidth = reader.ReadInt32(), SingleHexColor = reader.ReadString(), GradientStartColor = reader.ReadString(), GradientEndColor = reader.ReadString(), AnimateGradient = reader.ReadBoolean(), GradientSpread = reader.ReadSingle(), RainbowWaveSpread = reader.ReadSingle(), ColorAnimationSpeed = reader.ReadSingle(),
-                    Pronouns = reader.ReadString(), ShowPronouns = reader.ReadBoolean(), PronounBracketStyle = (BracketType)reader.ReadByte(), ShareTitleColoring = reader.ReadBoolean(), PronounColoring = (ColoringType)reader.ReadByte(), PronounSingleHexColor = reader.ReadString(), PronounGradientStartColor = reader.ReadString(), PronounGradientEndColor = reader.ReadString(), PronounAnimateGradient = reader.ReadBoolean(), PronounGradientSpread = reader.ReadSingle(), PronounRainbowWaveSpread = reader.ReadSingle(), PronounColorAnimationSpeed = reader.ReadSingle(),
-                    TitleOnNewLine = reader.ReadBoolean(), AddGapAboveTitle = reader.ReadBoolean()
-                };
+                var profile = new CharacterTitleProfile();
+
+                // Title Properties
+                profile.Title = reader.ReadString();
+                profile.BracketStyle = (BracketType)reader.ReadByte();
+                profile.TextAnimation = (TextAnimationType)reader.ReadByte();
+                profile.Coloring = (ColoringType)reader.ReadByte();
+                profile.AnimationSpeed = reader.ReadSingle();
+                profile.MarqueeWidth = reader.ReadInt32();
+                profile.SingleHexColor = reader.ReadString();
+                profile.GradientStartColor = reader.ReadString();
+                profile.GradientEndColor = reader.ReadString();
+                profile.AnimateGradient = reader.ReadBoolean();
+                profile.GradientSpread = reader.ReadSingle();
+                profile.RainbowWaveSpread = reader.ReadSingle();
+                profile.ColorAnimationSpeed = reader.ReadSingle();
+
+                // Pronoun Properties
+                profile.Pronouns = reader.ReadString();
+                profile.ShowPronouns = reader.ReadBoolean();
+                profile.PronounBracketStyle = (BracketType)reader.ReadByte();
+                profile.ShareTitleColoring = reader.ReadBoolean();
+                profile.PronounColoring = (ColoringType)reader.ReadByte();
+                profile.PronounSingleHexColor = reader.ReadString();
+                profile.PronounGradientStartColor = reader.ReadString();
+                profile.PronounGradientEndColor = reader.ReadString();
+                profile.PronounAnimateGradient = reader.ReadBoolean();
+                profile.PronounGradientSpread = reader.ReadSingle();
+                profile.PronounRainbowWaveSpread = reader.ReadSingle();
+                profile.PronounColorAnimationSpeed = reader.ReadSingle();
+                
+                // General Display Properties
+                profile.TitleOnNewLine = reader.ReadBoolean();
+                profile.AddGapAboveTitle = reader.ReadBoolean();
+                
+                return profile;
             }
         }
 
