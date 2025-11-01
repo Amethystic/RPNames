@@ -117,12 +117,6 @@ namespace RPNames
                 writer.Write(profile.AddGapAboveTitle);
             }
             
-            // =================================================================================
-            // --- FIX START ---
-            // Rewrote the ReadProfile method to be more verbose and explicitly mirror the
-            // WriteProfile method. This prevents synchronization errors (EndOfStreamException)
-            // and improves readability and future maintenance.
-            // --- FIX END ---
             public static CharacterTitleProfile ReadProfile(BinaryReader reader)
             {
                 if (!reader.ReadBoolean()) return null;
