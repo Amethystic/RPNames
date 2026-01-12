@@ -48,4 +48,8 @@
         <Reference Include="$(AtlyssManaged)UnityEngine.TextRenderingModule.dll" Private="False" />
         <PackageReference Include="Soggy_Pancake-CodeYapper" Version="2.0.0" Private="False" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="_ThunderstoreBuild\" />
+    </ItemGroup>
 </Project>
