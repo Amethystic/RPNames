@@ -1,9 +1,10 @@
 ## Changelog
-## 1.3.2 - x.x.7
+## 1.3.2 - x.x.8
 - **UI:** Title/Pronoun limit is now 32 -> 50 Chars max.
 - Changed pictures on Readme.
 - **Fixed:** Late-Join Sync issue.
 - **Fixed:** 3 found Codetalker issues.
+- **Codetalker:** Update yo.
 
 ### 1.3 - x.x.1
 - **Feature:** Added a dedicated Pronouns system. You can now add pronouns and select a bracket style for them in the settings menu, separate from the main title.

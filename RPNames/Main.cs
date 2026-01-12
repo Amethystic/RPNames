@@ -7,6 +7,7 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.IO; // Required for MemoryStream, BinaryWriter, BinaryReader
+using System.IO.Compression; // <--- ADDED THIS FOR COMPRESSION
 using System.Linq;
 using System.Reflection;
 using System.Text; // Required for StringBuilder
@@ -86,28 +87,28 @@ namespace RPNames
                 if (profile == null) { writer.Write(false); return; }
                 writer.Write(true);
                 // Title Properties
-                writer.Write(profile.Title); 
+                writer.Write(profile.Title ?? ""); 
                 writer.Write((byte)profile.BracketStyle); 
                 writer.Write((byte)profile.TextAnimation); 
                 writer.Write((byte)profile.Coloring); 
                 writer.Write(profile.AnimationSpeed); 
                 writer.Write(profile.MarqueeWidth); 
-                writer.Write(profile.SingleHexColor); 
-                writer.Write(profile.GradientStartColor); 
-                writer.Write(profile.GradientEndColor); 
+                writer.Write(profile.SingleHexColor ?? "FFFFFF"); 
+                writer.Write(profile.GradientStartColor ?? "FF0000"); 
+                writer.Write(profile.GradientEndColor ?? "0000FF"); 
                 writer.Write(profile.AnimateGradient); 
                 writer.Write(profile.GradientSpread); 
                 writer.Write(profile.RainbowWaveSpread); 
                 writer.Write(profile.ColorAnimationSpeed);
                 // Pronoun Properties
-                writer.Write(profile.Pronouns); 
+                writer.Write(profile.Pronouns ?? ""); 
                 writer.Write(profile.ShowPronouns); 
                 writer.Write((byte)profile.PronounBracketStyle); 
                 writer.Write(profile.ShareTitleColoring); 
                 writer.Write((byte)profile.PronounColoring); 
-                writer.Write(profile.PronounSingleHexColor); 
-                writer.Write(profile.PronounGradientStartColor); 
-                writer.Write(profile.PronounGradientEndColor); 
+                writer.Write(profile.PronounSingleHexColor ?? "FFFFFF"); 
+                writer.Write(profile.PronounGradientStartColor ?? "FF0000"); 
+                writer.Write(profile.PronounGradientEndColor ?? "0000FF"); 
                 writer.Write(profile.PronounAnimateGradient); 
                 writer.Write(profile.PronounGradientSpread); 
                 writer.Write(profile.PronounRainbowWaveSpread); 
@@ -173,13 +174,63 @@ namespace RPNames
 
         public class SyncAllProfilesPacket : BinaryPacketBase
         {
-            public override string PacketSignature => ModInfo.GUID + "_SyncAll";
+            // CHANGED SIGNATURE TO PREVENT CRASHES WITH OLD VERSIONS
+            public override string PacketSignature => ModInfo.GUID + "_SyncAll_GZ";
             public Dictionary<uint, CharacterTitleProfile> AllProfiles { get; set; }
             public SyncAllProfilesPacket() { }
             public SyncAllProfilesPacket(Dictionary<uint, CharacterTitleProfile> profiles) { AllProfiles = profiles; }
 
-            public override byte[] Serialize() { using (var ms = new MemoryStream()) { using (var writer = new BinaryWriter(ms)) { writer.Write(AllProfiles.Count); foreach (var entry in AllProfiles) { writer.Write(entry.Key); ProfileSerializer.WriteProfile(writer, entry.Value); } } return ms.ToArray(); } }
-            public override void Deserialize(byte[] data) { using (var ms = new MemoryStream(data)) { using (var reader = new BinaryReader(ms)) { int count = reader.ReadInt32(); AllProfiles = new Dictionary<uint, CharacterTitleProfile>(count); for (int i = 0; i < count; i++) { AllProfiles.Add(reader.ReadUInt32(), ProfileSerializer.ReadProfile(reader)); } } } }
+            public override byte[] Serialize() 
+            { 
+                byte[] rawData;
+                // 1. Write the normal data to memory first
+                using (var ms = new MemoryStream()) 
+                { 
+                    using (var writer = new BinaryWriter(ms)) 
+                    { 
+                        writer.Write(AllProfiles.Count); 
+                        foreach (var entry in AllProfiles) 
+                        { 
+                            writer.Write(entry.Key); 
+                            ProfileSerializer.WriteProfile(writer, entry.Value); 
+                        } 
+                    } 
+                    rawData = ms.ToArray();
+                } 
+                
+                // 2. Compress the data using GZip
+                using (var compressedMs = new MemoryStream())
+                {
+                    using (var gzip = new GZipStream(compressedMs, CompressionMode.Compress))
+                    {
+                        gzip.Write(rawData, 0, rawData.Length);
+                    }
+                    return compressedMs.ToArray();
+                }
+            }
+            
+            public override void Deserialize(byte[] data) 
+            { 
+                // 1. Decompress the data
+                using (var compressedMs = new MemoryStream(data))
+                using (var gzip = new GZipStream(compressedMs, CompressionMode.Decompress))
+                using (var rawMs = new MemoryStream())
+                {
+                    gzip.CopyTo(rawMs);
+                    rawMs.Position = 0; // Reset position to start reading
+                    
+                    // 2. Read the uncompressed data
+                    using (var reader = new BinaryReader(rawMs)) 
+                    { 
+                        int count = reader.ReadInt32(); 
+                        AllProfiles = new Dictionary<uint, CharacterTitleProfile>(count); 
+                        for (int i = 0; i < count; i++) 
+                        { 
+                            AllProfiles.Add(reader.ReadUInt32(), ProfileSerializer.ReadProfile(reader)); 
+                        } 
+                    } 
+                }
+            }
         }
 
         public class RequestAllTitlesPacket : PacketBase { public override string PacketSourceGUID => ModInfo.GUID; }
