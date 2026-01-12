@@ -7,7 +7,7 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.IO; // Required for MemoryStream, BinaryWriter, BinaryReader
-using System.IO.Compression; // <--- ADDED THIS FOR COMPRESSION
+using System.IO.Compression; // Required for GZip
 using System.Linq;
 using System.Reflection;
 using System.Text; // Required for StringBuilder
@@ -86,7 +86,6 @@ namespace RPNames
             {
                 if (profile == null) { writer.Write(false); return; }
                 writer.Write(true);
-                // Title Properties
                 writer.Write(profile.Title ?? ""); 
                 writer.Write((byte)profile.BracketStyle); 
                 writer.Write((byte)profile.TextAnimation); 
@@ -100,7 +99,6 @@ namespace RPNames
                 writer.Write(profile.GradientSpread); 
                 writer.Write(profile.RainbowWaveSpread); 
                 writer.Write(profile.ColorAnimationSpeed);
-                // Pronoun Properties
                 writer.Write(profile.Pronouns ?? ""); 
                 writer.Write(profile.ShowPronouns); 
                 writer.Write((byte)profile.PronounBracketStyle); 
@@ -113,7 +111,6 @@ namespace RPNames
                 writer.Write(profile.PronounGradientSpread); 
                 writer.Write(profile.PronounRainbowWaveSpread); 
                 writer.Write(profile.PronounColorAnimationSpeed);
-                // General Display Properties
                 writer.Write(profile.TitleOnNewLine); 
                 writer.Write(profile.AddGapAboveTitle);
             }
@@ -122,8 +119,6 @@ namespace RPNames
             {
                 if (!reader.ReadBoolean()) return null;
                 var profile = new CharacterTitleProfile();
-
-                // Title Properties
                 profile.Title = reader.ReadString();
                 profile.BracketStyle = (BracketType)reader.ReadByte();
                 profile.TextAnimation = (TextAnimationType)reader.ReadByte();
@@ -137,8 +132,6 @@ namespace RPNames
                 profile.GradientSpread = reader.ReadSingle();
                 profile.RainbowWaveSpread = reader.ReadSingle();
                 profile.ColorAnimationSpeed = reader.ReadSingle();
-
-                // Pronoun Properties
                 profile.Pronouns = reader.ReadString();
                 profile.ShowPronouns = reader.ReadBoolean();
                 profile.PronounBracketStyle = (BracketType)reader.ReadByte();
@@ -151,11 +144,8 @@ namespace RPNames
                 profile.PronounGradientSpread = reader.ReadSingle();
                 profile.PronounRainbowWaveSpread = reader.ReadSingle();
                 profile.PronounColorAnimationSpeed = reader.ReadSingle();
-                
-                // General Display Properties
                 profile.TitleOnNewLine = reader.ReadBoolean();
                 profile.AddGapAboveTitle = reader.ReadBoolean();
-                
                 return profile;
             }
         }
@@ -172,63 +162,45 @@ namespace RPNames
             public override void Deserialize(byte[] data) { using (var ms = new MemoryStream(data)) { using (var reader = new BinaryReader(ms)) { TargetNetID = reader.ReadUInt32(); Profile = ProfileSerializer.ReadProfile(reader); } } }
         }
 
-        public class SyncAllProfilesPacket : BinaryPacketBase
+        // NEW: Packet for handling chunked data transfer
+        public class SyncProfileChunkPacket : BinaryPacketBase
         {
-            // CHANGED SIGNATURE TO PREVENT CRASHES WITH OLD VERSIONS
-            public override string PacketSignature => ModInfo.GUID + "_SyncAll_GZ";
-            public Dictionary<uint, CharacterTitleProfile> AllProfiles { get; set; }
-            public SyncAllProfilesPacket() { }
-            public SyncAllProfilesPacket(Dictionary<uint, CharacterTitleProfile> profiles) { AllProfiles = profiles; }
+            public override string PacketSignature => ModInfo.GUID + "_SyncChunk_GZ";
+            public string TransferId { get; set; }
+            public int ChunkIndex { get; set; }
+            public int TotalChunks { get; set; }
+            public byte[] ChunkData { get; set; }
+
+            public SyncProfileChunkPacket() { }
+            public SyncProfileChunkPacket(string transferId, int index, int total, byte[] data) 
+            { 
+                TransferId = transferId; ChunkIndex = index; TotalChunks = total; ChunkData = data; 
+            }
 
             public override byte[] Serialize() 
-            { 
-                byte[] rawData;
-                // 1. Write the normal data to memory first
+            {
                 using (var ms = new MemoryStream()) 
-                { 
-                    using (var writer = new BinaryWriter(ms)) 
-                    { 
-                        writer.Write(AllProfiles.Count); 
-                        foreach (var entry in AllProfiles) 
-                        { 
-                            writer.Write(entry.Key); 
-                            ProfileSerializer.WriteProfile(writer, entry.Value); 
-                        } 
-                    } 
-                    rawData = ms.ToArray();
-                } 
-                
-                // 2. Compress the data using GZip
-                using (var compressedMs = new MemoryStream())
+                using (var writer = new BinaryWriter(ms)) 
                 {
-                    using (var gzip = new GZipStream(compressedMs, CompressionMode.Compress))
-                    {
-                        gzip.Write(rawData, 0, rawData.Length);
-                    }
-                    return compressedMs.ToArray();
+                    writer.Write(TransferId);
+                    writer.Write(ChunkIndex);
+                    writer.Write(TotalChunks);
+                    writer.Write(ChunkData.Length);
+                    writer.Write(ChunkData);
+                    return ms.ToArray();
                 }
             }
-            
+
             public override void Deserialize(byte[] data) 
-            { 
-                // 1. Decompress the data
-                using (var compressedMs = new MemoryStream(data))
-                using (var gzip = new GZipStream(compressedMs, CompressionMode.Decompress))
-                using (var rawMs = new MemoryStream())
+            {
+                using (var ms = new MemoryStream(data)) 
+                using (var reader = new BinaryReader(ms)) 
                 {
-                    gzip.CopyTo(rawMs);
-                    rawMs.Position = 0; // Reset position to start reading
-                    
-                    // 2. Read the uncompressed data
-                    using (var reader = new BinaryReader(rawMs)) 
-                    { 
-                        int count = reader.ReadInt32(); 
-                        AllProfiles = new Dictionary<uint, CharacterTitleProfile>(count); 
-                        for (int i = 0; i < count; i++) 
-                        { 
-                            AllProfiles.Add(reader.ReadUInt32(), ProfileSerializer.ReadProfile(reader)); 
-                        } 
-                    } 
+                    TransferId = reader.ReadString();
+                    ChunkIndex = reader.ReadInt32();
+                    TotalChunks = reader.ReadInt32();
+                    int dataLen = reader.ReadInt32();
+                    ChunkData = reader.ReadBytes(dataLen);
                 }
             }
         }
@@ -260,6 +232,10 @@ namespace RPNames
         
         internal static Dictionary<uint, PlayerTitleAnimator> AllPlayerAnimators = new Dictionary<uint, PlayerTitleAnimator>();
         
+        // Chunking Buffers
+        private static Dictionary<string, byte[][]> _incomingChunks = new Dictionary<string, byte[][]>();
+        private static Dictionary<string, float> _chunkTimeouts = new Dictionary<string, float>();
+
         private Color _gradientStartColorCache, _gradientEndColorCache;
 
         private static readonly List<string> _presetTitles = new List<string>();
@@ -316,7 +292,58 @@ namespace RPNames
         private void PopulatePresetTitles() { _presetTitles.Clear(); _presetTitles.AddRange(new[] { "The Explorer", "The Patient", "Dragonslayer", "Scarab Lord", "The Undying", "The Insane", "Grand Marshal", "High Warlord", "Arena Master", "Salty", "Chef", "Guardian of Cenarius", "Hand of A'dal", "Master Angler" }); }
         
         public static void OnProfileUpdate(PacketHeader header, BinaryPacketBase packet) { if (packet is Packets.UpdateTitleProfilePacket p) ApplyProfileUpdate(p.TargetNetID, p.Profile); }
-        public static void OnFullSync(PacketHeader header, BinaryPacketBase packet) { if (packet is Packets.SyncAllProfilesPacket p) foreach (var entry in p.AllProfiles) ApplyProfileUpdate(entry.Key, entry.Value); }
+        
+        // --- CHUNK HANDLER ---
+        public static void OnChunkReceived(PacketHeader header, BinaryPacketBase packet)
+        {
+            if (packet is Packets.SyncProfileChunkPacket p)
+            {
+                if (!_incomingChunks.ContainsKey(p.TransferId))
+                {
+                    _incomingChunks[p.TransferId] = new byte[p.TotalChunks][];
+                    _chunkTimeouts[p.TransferId] = Time.time + 30f; // 30s timeout
+                }
+                
+                var buffer = _incomingChunks[p.TransferId];
+                if (p.ChunkIndex >= 0 && p.ChunkIndex < buffer.Length)
+                {
+                    buffer[p.ChunkIndex] = p.ChunkData;
+                }
+
+                // Check if complete
+                if (buffer.All(b => b != null))
+                {
+                    // Reassemble
+                    using (var fullStream = new MemoryStream())
+                    {
+                        foreach (var chunk in buffer) fullStream.Write(chunk, 0, chunk.Length);
+                        fullStream.Position = 0;
+                        
+                        // Decompress
+                        using (var gzip = new GZipStream(fullStream, CompressionMode.Decompress))
+                        using (var decompressed = new MemoryStream())
+                        {
+                            gzip.CopyTo(decompressed);
+                            decompressed.Position = 0;
+                            
+                            // Deserialize
+                            using (var reader = new BinaryReader(decompressed))
+                            {
+                                int count = reader.ReadInt32();
+                                for (int i = 0; i < count; i++)
+                                {
+                                    uint netId = reader.ReadUInt32();
+                                    var profile = Packets.ProfileSerializer.ReadProfile(reader);
+                                    ApplyProfileUpdate(netId, profile);
+                                }
+                            }
+                        }
+                    }
+                    _incomingChunks.Remove(p.TransferId);
+                    _chunkTimeouts.Remove(p.TransferId);
+                }
+            }
+        }
         
         private static void ApplyProfileUpdate(uint netId, CharacterTitleProfile profile)
         {
@@ -336,12 +363,70 @@ namespace RPNames
             }
         }
         
-        public static void OnSyncRequest(PacketHeader header, PacketBase packet) { if (packet is Packets.RequestAllTitlesPacket) CodeTalkerNetwork.SendBinaryNetworkPacket(new Packets.SyncAllProfilesPacket(HarmonyPatches.PlayerProfiles)); }
+        // --- DATA SENDER (Compresses & Chunks) ---
+        public static void OnSyncRequest(PacketHeader header, PacketBase packet) 
+        { 
+            if (packet is Packets.RequestAllTitlesPacket) 
+            {
+                // Serialize All Profiles
+                byte[] rawData;
+                using (var ms = new MemoryStream())
+                using (var writer = new BinaryWriter(ms))
+                {
+                    writer.Write(HarmonyPatches.PlayerProfiles.Count);
+                    foreach (var entry in HarmonyPatches.PlayerProfiles)
+                    {
+                        writer.Write(entry.Key);
+                        Packets.ProfileSerializer.WriteProfile(writer, entry.Value);
+                    }
+                    rawData = ms.ToArray();
+                }
+
+                // Compress
+                byte[] compressedData;
+                using (var ms = new MemoryStream())
+                {
+                    using (var gzip = new GZipStream(ms, CompressionMode.Compress))
+                    {
+                        gzip.Write(rawData, 0, rawData.Length);
+                    }
+                    compressedData = ms.ToArray();
+                }
+
+                // LOGGING STATS (For verification)
+                Log.LogInfo($"[RPNames] Syncing {HarmonyPatches.PlayerProfiles.Count} profiles.");
+                Log.LogInfo($"[RPNames] Raw Size: {rawData.Length} bytes | Compressed Size: {compressedData.Length} bytes");
+                Log.LogInfo($"[RPNames] Compression Ratio: {(float)compressedData.Length / rawData.Length:P2}");
+
+                // Chunk and Send
+                string transferId = Guid.NewGuid().ToString();
+                int chunkSize = 2048; // 2KB chunks to be safe (limit is 4KB)
+                int totalChunks = Mathf.CeilToInt((float)compressedData.Length / chunkSize);
+                
+                Log.LogInfo($"[RPNames] Sending in {totalChunks} chunk(s).");
+
+                for (int i = 0; i < totalChunks; i++)
+                {
+                    int offset = i * chunkSize;
+                    int length = Mathf.Min(chunkSize, compressedData.Length - offset);
+                    byte[] chunk = new byte[length];
+                    Array.Copy(compressedData, offset, chunk, 0, length);
+
+                    CodeTalkerNetwork.SendBinaryNetworkPacket(new Packets.SyncProfileChunkPacket(transferId, i, totalChunks, chunk));
+                }
+            } 
+        }
+        
         public static void SendTitleUpdate(CharacterTitleProfile profile) { uint myNetId = Player._mainPlayer?.netId ?? 0; if (myNetId == 0) return; if(_isCodeTalkerLoaded) CodeTalkerNetwork.SendBinaryNetworkPacket(new Packets.UpdateTitleProfilePacket(myNetId, profile)); ApplyProfileUpdate(myNetId, profile); }
         public static void RequestFullTitleSync() { if (_isCodeTalkerLoaded) CodeTalkerNetwork.SendNetworkPacket(new Packets.RequestAllTitlesPacket()); }
 
         private void Update()
         {
+            // Clean up stale chunks
+            List<string> stale = new List<string>();
+            foreach(var kvp in _chunkTimeouts) if (Time.time > kvp.Value) stale.Add(kvp.Key);
+            foreach(var s in stale) { _incomingChunks.Remove(s); _chunkTimeouts.Remove(s); }
+
             switch (_menuState) { case MenuState.Opening: _animationProgress = Mathf.Clamp01(_animationProgress + Time.unscaledDeltaTime / AnimationDuration); if (_animationProgress >= 1f) _menuState = MenuState.Open; break; case MenuState.Closing: _animationProgress = Mathf.Clamp01(_animationProgress - Time.unscaledDeltaTime / AnimationDuration); if (_animationProgress <= 0f) _menuState = MenuState.Closed; break; }
             if (Input.GetKeyDown(_menuKey.Value)) { if (_menuState == MenuState.Open || _menuState == MenuState.Opening) { _menuState = MenuState.Closing; _showTextAnimPicker = _showColoringPicker = _showBracketPicker = _showPresetPicker = _showPronounBracketPicker = _showPronounColoringPicker = false; } else { _menuState = MenuState.Opening; LoadUIFromProfile(CurrentCharacterSlot >= 0 ? CurrentCharacterSlot : 0); } }
 
@@ -501,7 +586,7 @@ namespace RPNames
             if (!_listenersInitialized)
             {
                 CodeTalkerNetwork.RegisterBinaryListener<Packets.UpdateTitleProfilePacket>(Main.OnProfileUpdate);
-                CodeTalkerNetwork.RegisterBinaryListener<Packets.SyncAllProfilesPacket>(Main.OnFullSync);
+                CodeTalkerNetwork.RegisterBinaryListener<Packets.SyncProfileChunkPacket>(Main.OnChunkReceived);
                 if (__instance._isHostPlayer) CodeTalkerNetwork.RegisterListener<Packets.RequestAllTitlesPacket>(Main.OnSyncRequest);
                 _listenersInitialized = true;
             }
