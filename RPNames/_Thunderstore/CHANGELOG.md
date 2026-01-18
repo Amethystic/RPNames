@@ -1,4 +1,7 @@
 ## Changelog
+### 1.3.9
+- **Dependencies:** Codeyapper updated to -> 2.2.0 
+
 ## 1.3.2 - x.x.8
 - **UI:** Title/Pronoun limit is now 32 -> 50 Chars max.
 - Changed pictures on Readme.

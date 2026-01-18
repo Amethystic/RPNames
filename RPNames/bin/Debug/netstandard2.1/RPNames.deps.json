@@ -7,12 +7,12 @@
   "targets": {
     ".NETStandard,Version=v2.1": {},
     ".NETStandard,Version=v2.1/": {
-      "RPNames/1.3.8": {
+      "RPNames/1.3.9": {
         "dependencies": {
           "BepInEx.Analyzers": "1.0.8",
           "BepInEx.AssemblyPublicizer.MSBuild": "0.4.2",
           "BepInEx.Core": "5.4.21",
-          "Soggy_Pancake-CodeYapper": "2.0.0",
+          "Soggy_Pancake-CodeYapper": "2.1.0",
           "UnityEngine.Modules": "2022.3.62"
         },
         "runtime": {
@@ -131,11 +131,11 @@
           }
         }
       },
-      "Soggy_Pancake-CodeYapper/2.0.0": {
+      "Soggy_Pancake-CodeYapper/2.1.0": {
         "runtime": {
           "lib/netstandard2.0/CodeTalker.dll": {
-            "assemblyVersion": "2.0.0.0",
-            "fileVersion": "2.0.0.0"
+            "assemblyVersion": "2.1.0.0",
+            "fileVersion": "2.1.0.0"
           }
         }
       },
@@ -658,7 +658,7 @@
     }
   },
   "libraries": {
-    "RPNames/1.3.8": {
+    "RPNames/1.3.9": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
@@ -733,12 +733,12 @@
       "path": "monomod.utils/21.12.13.1",
       "hashPath": "monomod.utils.21.12.13.1.nupkg.sha512"
     },
-    "Soggy_Pancake-CodeYapper/2.0.0": {
+    "Soggy_Pancake-CodeYapper/2.1.0": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-ChSo5sHxSZ28PEadCilgIilK/YeDUFXplqhzdMZQk1WLZ3FLofE/oo0BLURT40WvOOpxTGZluVLPBQbAjsadAw==",
-      "path": "soggy_pancake-codeyapper/2.0.0",
-      "hashPath": "soggy_pancake-codeyapper.2.0.0.nupkg.sha512"
+      "sha512": "sha512-AdHvcpFvMlupey/DIm+DBhwyeCaqBAmXBGutLv9Lv3RkMhcIcNULzsdQ5yHfKAjFU9EofY/Jf09xa7bmu/9mug==",
+      "path": "soggy_pancake-codeyapper/2.1.0",
+      "hashPath": "soggy_pancake-codeyapper.2.1.0.nupkg.sha512"
     },
     "System.Collections/4.3.0": {
       "type": "package",

@@ -147,4 +147,5 @@
 	<s:String x:Key="/Default/Environment/AssemblyExplorer/XmlDocument/@EntryValue">&lt;AssemblyExplorer&gt;
   &lt;Assembly Path="C:\Users\soap\.nuget\packages\soggy_pancake-codeyapper\2.0.0\lib\netstandard2.0\CodeTalker.dll" /&gt;
   &lt;Assembly Path="/home/soap/.nuget/packages/soggy_pancake-codeyapper/2.0.0/lib/netstandard2.0/CodeTalker.dll" /&gt;
+  &lt;Assembly Path="/home/soap/.nuget/packages/soggy_pancake-codeyapper/2.1.0/lib/netstandard2.0/CodeTalker.dll" /&gt;
 &lt;/AssemblyExplorer&gt;</s:String></wpf:ResourceDictionary>
