@@ -6,16 +6,16 @@ using HarmonyLib;
 using UnityEngine;
 using System;
 using System.Collections.Generic;
-using System.IO; // Required for MemoryStream, BinaryWriter, BinaryReader
-using System.IO.Compression; // Required for GZip
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
-using System.Text; // Required for StringBuilder
+using System.Text;
 using TMPro;
-// Required for the packet-based CodeTalker implementation
 using CodeTalker.Networking;
 using CodeTalker.Packets;
 using Newtonsoft.Json;
+using CodeTalker;
 
 // ============== NAMESPACE DEFINITIONS ==============
 namespace RPNames
@@ -23,8 +23,6 @@ namespace RPNames
     public class CharacterTitleProfile
     {
         [JsonIgnore] public uint TargetNetID { get; set; }
-        
-        // Title Properties
         public string Title { get; set; } = "";
         public BracketType BracketStyle { get; set; } = BracketType.Parentheses;
         public TextAnimationType TextAnimation { get; set; } = TextAnimationType.Static;
@@ -38,8 +36,6 @@ namespace RPNames
         public float GradientSpread { get; set; } = 10f;
         public float RainbowWaveSpread { get; set; } = 15f;
         public float ColorAnimationSpeed { get; set; } = 1f;
-
-        // Pronoun Properties
         public string Pronouns { get; set; } = "";
         public bool ShowPronouns { get; set; } = false;
         public BracketType PronounBracketStyle { get; set; } = BracketType.Parentheses;
@@ -52,8 +48,6 @@ namespace RPNames
         public float PronounGradientSpread { get; set; } = 10f;
         public float PronounRainbowWaveSpread { get; set; } = 15f;
         public float PronounColorAnimationSpeed { get; set; } = 1f;
-        
-        // General Display Properties
         public bool TitleOnNewLine { get; set; } = true;
         public bool AddGapAboveTitle { get; set; } = true;
     }
@@ -62,7 +56,6 @@ namespace RPNames
     public enum ColoringType { None, SingleColor, Rainbow, Gradient, Wave, StaticRainbow }
     public enum BracketType { None, Parentheses, SquareBrackets, Tilde, Dash, Plus, Equals, Asterisk, Dollar, Hash, Exclamation, Pipe }
 
-    // Manages the animation state for a single player
     internal class PlayerTitleAnimator
     {
         public uint NetId;
@@ -74,7 +67,6 @@ namespace RPNames
         public float TypewriterPauseTimer = 0f;
         public bool TypewriterCursorVisible = true;
         public float TypewriterBlinkTimer = 0f;
-
         public PlayerTitleAnimator(uint netId) { NetId = netId; }
     }
 
@@ -86,123 +78,42 @@ namespace RPNames
             {
                 if (profile == null) { writer.Write(false); return; }
                 writer.Write(true);
-                writer.Write(profile.Title ?? ""); 
-                writer.Write((byte)profile.BracketStyle); 
-                writer.Write((byte)profile.TextAnimation); 
-                writer.Write((byte)profile.Coloring); 
-                writer.Write(profile.AnimationSpeed); 
-                writer.Write(profile.MarqueeWidth); 
-                writer.Write(profile.SingleHexColor ?? "FFFFFF"); 
-                writer.Write(profile.GradientStartColor ?? "FF0000"); 
-                writer.Write(profile.GradientEndColor ?? "0000FF"); 
-                writer.Write(profile.AnimateGradient); 
-                writer.Write(profile.GradientSpread); 
-                writer.Write(profile.RainbowWaveSpread); 
-                writer.Write(profile.ColorAnimationSpeed);
-                writer.Write(profile.Pronouns ?? ""); 
-                writer.Write(profile.ShowPronouns); 
-                writer.Write((byte)profile.PronounBracketStyle); 
-                writer.Write(profile.ShareTitleColoring); 
-                writer.Write((byte)profile.PronounColoring); 
-                writer.Write(profile.PronounSingleHexColor ?? "FFFFFF"); 
-                writer.Write(profile.PronounGradientStartColor ?? "FF0000"); 
-                writer.Write(profile.PronounGradientEndColor ?? "0000FF"); 
-                writer.Write(profile.PronounAnimateGradient); 
-                writer.Write(profile.PronounGradientSpread); 
-                writer.Write(profile.PronounRainbowWaveSpread); 
-                writer.Write(profile.PronounColorAnimationSpeed);
-                writer.Write(profile.TitleOnNewLine); 
-                writer.Write(profile.AddGapAboveTitle);
+                writer.Write(profile.Title ?? ""); writer.Write((byte)profile.BracketStyle); writer.Write((byte)profile.TextAnimation); writer.Write((byte)profile.Coloring); writer.Write(profile.AnimationSpeed); writer.Write(profile.MarqueeWidth); writer.Write(profile.SingleHexColor ?? "FFFFFF"); writer.Write(profile.GradientStartColor ?? "FF0000"); writer.Write(profile.GradientEndColor ?? "0000FF"); writer.Write(profile.AnimateGradient); writer.Write(profile.GradientSpread); writer.Write(profile.RainbowWaveSpread); writer.Write(profile.ColorAnimationSpeed);
+                writer.Write(profile.Pronouns ?? ""); writer.Write(profile.ShowPronouns); writer.Write((byte)profile.PronounBracketStyle); writer.Write(profile.ShareTitleColoring); writer.Write((byte)profile.PronounColoring); writer.Write(profile.PronounSingleHexColor ?? "FFFFFF"); writer.Write(profile.PronounGradientStartColor ?? "FF0000"); writer.Write(profile.PronounGradientEndColor ?? "0000FF"); writer.Write(profile.PronounAnimateGradient); writer.Write(profile.PronounGradientSpread); writer.Write(profile.PronounRainbowWaveSpread); writer.Write(profile.PronounColorAnimationSpeed);
+                writer.Write(profile.TitleOnNewLine); writer.Write(profile.AddGapAboveTitle);
             }
-            
+
             public static CharacterTitleProfile ReadProfile(BinaryReader reader)
             {
                 if (!reader.ReadBoolean()) return null;
-                var profile = new CharacterTitleProfile();
-                profile.Title = reader.ReadString();
-                profile.BracketStyle = (BracketType)reader.ReadByte();
-                profile.TextAnimation = (TextAnimationType)reader.ReadByte();
-                profile.Coloring = (ColoringType)reader.ReadByte();
-                profile.AnimationSpeed = reader.ReadSingle();
-                profile.MarqueeWidth = reader.ReadInt32();
-                profile.SingleHexColor = reader.ReadString();
-                profile.GradientStartColor = reader.ReadString();
-                profile.GradientEndColor = reader.ReadString();
-                profile.AnimateGradient = reader.ReadBoolean();
-                profile.GradientSpread = reader.ReadSingle();
-                profile.RainbowWaveSpread = reader.ReadSingle();
-                profile.ColorAnimationSpeed = reader.ReadSingle();
-                profile.Pronouns = reader.ReadString();
-                profile.ShowPronouns = reader.ReadBoolean();
-                profile.PronounBracketStyle = (BracketType)reader.ReadByte();
-                profile.ShareTitleColoring = reader.ReadBoolean();
-                profile.PronounColoring = (ColoringType)reader.ReadByte();
-                profile.PronounSingleHexColor = reader.ReadString();
-                profile.PronounGradientStartColor = reader.ReadString();
-                profile.PronounGradientEndColor = reader.ReadString();
-                profile.PronounAnimateGradient = reader.ReadBoolean();
-                profile.PronounGradientSpread = reader.ReadSingle();
-                profile.PronounRainbowWaveSpread = reader.ReadSingle();
-                profile.PronounColorAnimationSpeed = reader.ReadSingle();
-                profile.TitleOnNewLine = reader.ReadBoolean();
-                profile.AddGapAboveTitle = reader.ReadBoolean();
-                return profile;
+                return new CharacterTitleProfile {
+                    Title = reader.ReadString(), BracketStyle = (BracketType)reader.ReadByte(), TextAnimation = (TextAnimationType)reader.ReadByte(), Coloring = (ColoringType)reader.ReadByte(), AnimationSpeed = reader.ReadSingle(), MarqueeWidth = reader.ReadInt32(), SingleHexColor = reader.ReadString(), GradientStartColor = reader.ReadString(), GradientEndColor = reader.ReadString(), AnimateGradient = reader.ReadBoolean(), GradientSpread = reader.ReadSingle(), RainbowWaveSpread = reader.ReadSingle(), ColorAnimationSpeed = reader.ReadSingle(),
+                    Pronouns = reader.ReadString(), ShowPronouns = reader.ReadBoolean(), PronounBracketStyle = (BracketType)reader.ReadByte(), ShareTitleColoring = reader.ReadBoolean(), PronounColoring = (ColoringType)reader.ReadByte(), PronounSingleHexColor = reader.ReadString(), PronounGradientStartColor = reader.ReadString(), PronounGradientEndColor = reader.ReadString(), PronounAnimateGradient = reader.ReadBoolean(), PronounGradientSpread = reader.ReadSingle(), PronounRainbowWaveSpread = reader.ReadSingle(), PronounColorAnimationSpeed = reader.ReadSingle(),
+                    TitleOnNewLine = reader.ReadBoolean(), AddGapAboveTitle = reader.ReadBoolean()
+                };
             }
         }
 
         public class UpdateTitleProfilePacket : BinaryPacketBase
         {
             public override string PacketSignature => ModInfo.GUID + "_UpdateProfile";
-            public uint TargetNetID { get; set; }
             public CharacterTitleProfile Profile { get; set; }
             public UpdateTitleProfilePacket() { }
-            public UpdateTitleProfilePacket(uint targetId, CharacterTitleProfile profile) { TargetNetID = targetId; Profile = profile; }
+            public UpdateTitleProfilePacket(CharacterTitleProfile profile) { Profile = profile; }
 
-            public override byte[] Serialize() { using (var ms = new MemoryStream()) { using (var writer = new BinaryWriter(ms)) { writer.Write(TargetNetID); ProfileSerializer.WriteProfile(writer, Profile); } return ms.ToArray(); } }
-            public override void Deserialize(byte[] data) { using (var ms = new MemoryStream(data)) { using (var reader = new BinaryReader(ms)) { TargetNetID = reader.ReadUInt32(); Profile = ProfileSerializer.ReadProfile(reader); } } }
+            public override byte[] Serialize() { using (var ms = new MemoryStream()) { using (var writer = new BinaryWriter(ms)) { ProfileSerializer.WriteProfile(writer, Profile); } return ms.ToArray(); } }
+            public override void Deserialize(byte[] data) { using (var ms = new MemoryStream(data)) { using (var reader = new BinaryReader(ms)) { Profile = ProfileSerializer.ReadProfile(reader); } } }
         }
 
-        // NEW: Packet for handling chunked data transfer
-        public class SyncProfileChunkPacket : BinaryPacketBase
+        public class FullSyncPacket : BinaryPacketBase
         {
-            public override string PacketSignature => ModInfo.GUID + "_SyncChunk_GZ";
-            public string TransferId { get; set; }
-            public int ChunkIndex { get; set; }
-            public int TotalChunks { get; set; }
-            public byte[] ChunkData { get; set; }
+            public override string PacketSignature => ModInfo.GUID + "_FullSync";
+            public Dictionary<uint, CharacterTitleProfile> AllProfiles { get; set; }
+            public FullSyncPacket() { }
+            public FullSyncPacket(Dictionary<uint, CharacterTitleProfile> profiles) { AllProfiles = profiles; }
 
-            public SyncProfileChunkPacket() { }
-            public SyncProfileChunkPacket(string transferId, int index, int total, byte[] data) 
-            { 
-                TransferId = transferId; ChunkIndex = index; TotalChunks = total; ChunkData = data; 
-            }
-
-            public override byte[] Serialize() 
-            {
-                using (var ms = new MemoryStream()) 
-                using (var writer = new BinaryWriter(ms)) 
-                {
-                    writer.Write(TransferId);
-                    writer.Write(ChunkIndex);
-                    writer.Write(TotalChunks);
-                    writer.Write(ChunkData.Length);
-                    writer.Write(ChunkData);
-                    return ms.ToArray();
-                }
-            }
-
-            public override void Deserialize(byte[] data) 
-            {
-                using (var ms = new MemoryStream(data)) 
-                using (var reader = new BinaryReader(ms)) 
-                {
-                    TransferId = reader.ReadString();
-                    ChunkIndex = reader.ReadInt32();
-                    TotalChunks = reader.ReadInt32();
-                    int dataLen = reader.ReadInt32();
-                    ChunkData = reader.ReadBytes(dataLen);
-                }
-            }
+            public override byte[] Serialize() { using (var ms = new MemoryStream()) { using (var writer = new BinaryWriter(ms)) { writer.Write(AllProfiles.Count); foreach (var entry in AllProfiles) { writer.Write(entry.Key); ProfileSerializer.WriteProfile(writer, entry.Value); } } return ms.ToArray(); } }
+            public override void Deserialize(byte[] data) { using (var ms = new MemoryStream(data)) { using (var reader = new BinaryReader(ms)) { int count = reader.ReadInt32(); AllProfiles = new Dictionary<uint, CharacterTitleProfile>(count); for (int i = 0; i < count; i++) { AllProfiles.Add(reader.ReadUInt32(), ProfileSerializer.ReadProfile(reader)); } } } }
         }
 
         public class RequestAllTitlesPacket : PacketBase { public override string PacketSourceGUID => ModInfo.GUID; }
@@ -231,13 +142,7 @@ namespace RPNames
         private static CharacterTitleProfile _copiedProfileBuffer = null;
         
         internal static Dictionary<uint, PlayerTitleAnimator> AllPlayerAnimators = new Dictionary<uint, PlayerTitleAnimator>();
-        
-        // Chunking Buffers
-        private static Dictionary<string, byte[][]> _incomingChunks = new Dictionary<string, byte[][]>();
-        private static Dictionary<string, float> _chunkTimeouts = new Dictionary<string, float>();
-
         private Color _gradientStartColorCache, _gradientEndColorCache;
-
         private static readonly List<string> _presetTitles = new List<string>();
         
         internal enum TypewriterState { Typing, Blinking, Backspacing }
@@ -291,57 +196,25 @@ namespace RPNames
 
         private void PopulatePresetTitles() { _presetTitles.Clear(); _presetTitles.AddRange(new[] { "The Explorer", "The Patient", "Dragonslayer", "Scarab Lord", "The Undying", "The Insane", "Grand Marshal", "High Warlord", "Arena Master", "Salty", "Chef", "Guardian of Cenarius", "Hand of A'dal", "Master Angler" }); }
         
-        public static void OnProfileUpdate(PacketHeader header, BinaryPacketBase packet) { if (packet is Packets.UpdateTitleProfilePacket p) ApplyProfileUpdate(p.TargetNetID, p.Profile); }
-        
-        // --- CHUNK HANDLER ---
-        public static void OnChunkReceived(PacketHeader header, BinaryPacketBase packet)
+        public static void OnProfileUpdate(PacketHeader header, BinaryPacketBase packet)
         {
-            if (packet is Packets.SyncProfileChunkPacket p)
+            if (packet is Packets.UpdateTitleProfilePacket p)
             {
-                if (!_incomingChunks.ContainsKey(p.TransferId))
+                Player sender = FindObjectsOfType<Player>().FirstOrDefault(x => x._steamID == header.SenderID.ToString());
+                if (sender != null)
                 {
-                    _incomingChunks[p.TransferId] = new byte[p.TotalChunks][];
-                    _chunkTimeouts[p.TransferId] = Time.time + 30f; // 30s timeout
+                    ApplyProfileUpdate(sender.netId, p.Profile);
                 }
-                
-                var buffer = _incomingChunks[p.TransferId];
-                if (p.ChunkIndex >= 0 && p.ChunkIndex < buffer.Length)
-                {
-                    buffer[p.ChunkIndex] = p.ChunkData;
-                }
-
-                // Check if complete
-                if (buffer.All(b => b != null))
-                {
-                    // Reassemble
-                    using (var fullStream = new MemoryStream())
-                    {
-                        foreach (var chunk in buffer) fullStream.Write(chunk, 0, chunk.Length);
-                        fullStream.Position = 0;
-                        
-                        // Decompress
-                        using (var gzip = new GZipStream(fullStream, CompressionMode.Decompress))
-                        using (var decompressed = new MemoryStream())
-                        {
-                            gzip.CopyTo(decompressed);
-                            decompressed.Position = 0;
-                            
-                            // Deserialize
-                            using (var reader = new BinaryReader(decompressed))
-                            {
-                                int count = reader.ReadInt32();
-                                for (int i = 0; i < count; i++)
-                                {
-                                    uint netId = reader.ReadUInt32();
-                                    var profile = Packets.ProfileSerializer.ReadProfile(reader);
-                                    ApplyProfileUpdate(netId, profile);
-                                }
-                            }
-                        }
-                    }
-                    _incomingChunks.Remove(p.TransferId);
-                    _chunkTimeouts.Remove(p.TransferId);
-                }
+            }
+        }
+        
+        public static void OnFullSync(PacketHeader header, BinaryPacketBase packet)
+        {
+            if (packet is Packets.FullSyncPacket p)
+            {
+                var localNetIds = HarmonyPatches.PlayerProfiles.Keys.ToList();
+                foreach (var localId in localNetIds) if (!p.AllProfiles.ContainsKey(localId)) ApplyProfileUpdate(localId, null);
+                foreach (var entry in p.AllProfiles) ApplyProfileUpdate(entry.Key, entry.Value);
             }
         }
         
@@ -363,70 +236,27 @@ namespace RPNames
             }
         }
         
-        // --- DATA SENDER (Compresses & Chunks) ---
         public static void OnSyncRequest(PacketHeader header, PacketBase packet) 
         { 
             if (packet is Packets.RequestAllTitlesPacket) 
             {
-                // Serialize All Profiles
-                byte[] rawData;
-                using (var ms = new MemoryStream())
-                using (var writer = new BinaryWriter(ms))
-                {
-                    writer.Write(HarmonyPatches.PlayerProfiles.Count);
-                    foreach (var entry in HarmonyPatches.PlayerProfiles)
-                    {
-                        writer.Write(entry.Key);
-                        Packets.ProfileSerializer.WriteProfile(writer, entry.Value);
-                    }
-                    rawData = ms.ToArray();
-                }
-
-                // Compress
-                byte[] compressedData;
-                using (var ms = new MemoryStream())
-                {
-                    using (var gzip = new GZipStream(ms, CompressionMode.Compress))
-                    {
-                        gzip.Write(rawData, 0, rawData.Length);
-                    }
-                    compressedData = ms.ToArray();
-                }
-
-                // LOGGING STATS (For verification)
-                Log.LogInfo($"[RPNames] Syncing {HarmonyPatches.PlayerProfiles.Count} profiles.");
-                Log.LogInfo($"[RPNames] Raw Size: {rawData.Length} bytes | Compressed Size: {compressedData.Length} bytes");
-                Log.LogInfo($"[RPNames] Compression Ratio: {(float)compressedData.Length / rawData.Length:P2}");
-
-                // Chunk and Send
-                string transferId = Guid.NewGuid().ToString();
-                int chunkSize = 2048; // 2KB chunks to be safe (limit is 4KB)
-                int totalChunks = Mathf.CeilToInt((float)compressedData.Length / chunkSize);
-                
-                Log.LogInfo($"[RPNames] Sending in {totalChunks} chunk(s).");
-
-                for (int i = 0; i < totalChunks; i++)
-                {
-                    int offset = i * chunkSize;
-                    int length = Mathf.Min(chunkSize, compressedData.Length - offset);
-                    byte[] chunk = new byte[length];
-                    Array.Copy(compressedData, offset, chunk, 0, length);
-
-                    CodeTalkerNetwork.SendBinaryNetworkPacket(new Packets.SyncProfileChunkPacket(transferId, i, totalChunks, chunk));
-                }
+                var syncPacket = new Packets.FullSyncPacket(HarmonyPatches.PlayerProfiles);
+                CodeTalkerNetwork.SendNetworkPacket(header.SenderID, syncPacket, Compressors.CompressionType.GZip);
             } 
         }
         
-        public static void SendTitleUpdate(CharacterTitleProfile profile) { uint myNetId = Player._mainPlayer?.netId ?? 0; if (myNetId == 0) return; if(_isCodeTalkerLoaded) CodeTalkerNetwork.SendBinaryNetworkPacket(new Packets.UpdateTitleProfilePacket(myNetId, profile)); ApplyProfileUpdate(myNetId, profile); }
+        public static void SendTitleUpdate(CharacterTitleProfile profile) 
+        { 
+            if (Player._mainPlayer == null) return;
+            var packet = new Packets.UpdateTitleProfilePacket(profile);
+            CodeTalkerNetwork.SendNetworkPacket(packet);
+            ApplyProfileUpdate(Player._mainPlayer.netId, profile);
+        }
+        
         public static void RequestFullTitleSync() { if (_isCodeTalkerLoaded) CodeTalkerNetwork.SendNetworkPacket(new Packets.RequestAllTitlesPacket()); }
 
         private void Update()
         {
-            // Clean up stale chunks
-            List<string> stale = new List<string>();
-            foreach(var kvp in _chunkTimeouts) if (Time.time > kvp.Value) stale.Add(kvp.Key);
-            foreach(var s in stale) { _incomingChunks.Remove(s); _chunkTimeouts.Remove(s); }
-
             switch (_menuState) { case MenuState.Opening: _animationProgress = Mathf.Clamp01(_animationProgress + Time.unscaledDeltaTime / AnimationDuration); if (_animationProgress >= 1f) _menuState = MenuState.Open; break; case MenuState.Closing: _animationProgress = Mathf.Clamp01(_animationProgress - Time.unscaledDeltaTime / AnimationDuration); if (_animationProgress <= 0f) _menuState = MenuState.Closed; break; }
             if (Input.GetKeyDown(_menuKey.Value)) { if (_menuState == MenuState.Open || _menuState == MenuState.Opening) { _menuState = MenuState.Closing; _showTextAnimPicker = _showColoringPicker = _showBracketPicker = _showPresetPicker = _showPronounBracketPicker = _showPronounColoringPicker = false; } else { _menuState = MenuState.Opening; LoadUIFromProfile(CurrentCharacterSlot >= 0 ? CurrentCharacterSlot : 0); } }
 
@@ -576,20 +406,34 @@ namespace RPNames
         
         [HarmonyPostfix, HarmonyPatch(typeof(Player), "OnGameConditionChange")]
         private static void OnGameConditionChange_Postfix(Player __instance, GameCondition _newCondition) { if (__instance != Player._mainPlayer) return; Main.IsReady = (_newCondition == GameCondition.IN_GAME); if (Main.IsReady) { Main.CurrentCharacterSlot = ProfileDataManager._current.SelectedFileIndex; if (Main.instance.AllCharacterProfiles.TryGetValue(Main.CurrentCharacterSlot, out var profile)) { Main.instance.UpdateGradientCache(profile); Main.SendTitleUpdate(profile); } } }
+        
+        [HarmonyPostfix, HarmonyPatch(typeof(AtlyssNetworkManager), "OnStartClient")]
+        private static void OnStartClient_Postfix()
+        {
+            if (Main._isCodeTalkerLoaded && !_listenersInitialized)
+            {
+                CodeTalkerNetwork.RegisterBinaryListener<Packets.UpdateTitleProfilePacket>(Main.OnProfileUpdate);
+                CodeTalkerNetwork.RegisterBinaryListener<Packets.FullSyncPacket>(Main.OnFullSync);
+                _listenersInitialized = true;
+            }
+        }
+        
         [HarmonyPostfix, HarmonyPatch(typeof(AtlyssNetworkManager), "OnStopClient")]
-        private static void OnStopClient_Postfix() { Main.IsReady = false; Main.CurrentCharacterSlot = -1; PlayerProfiles.Clear(); CurrentPlayerTitles.Clear(); Main.AllPlayerAnimators.Clear(); _listenersInitialized = false; }
+        private static void OnStopClient_Postfix() 
+        { 
+            Main.IsReady = false; 
+            Main.CurrentCharacterSlot = -1; 
+            PlayerProfiles.Clear(); 
+            CurrentPlayerTitles.Clear(); 
+            Main.AllPlayerAnimators.Clear();
+            _listenersInitialized = false;
+        }
         
         [HarmonyPostfix, HarmonyPatch(typeof(Player), "OnStartAuthority")]
         private static void OnPlayerStart_Postfix(Player __instance)
         {
             if (!__instance.isLocalPlayer || !Main._isCodeTalkerLoaded) return;
-            if (!_listenersInitialized)
-            {
-                CodeTalkerNetwork.RegisterBinaryListener<Packets.UpdateTitleProfilePacket>(Main.OnProfileUpdate);
-                CodeTalkerNetwork.RegisterBinaryListener<Packets.SyncProfileChunkPacket>(Main.OnChunkReceived);
-                if (__instance._isHostPlayer) CodeTalkerNetwork.RegisterListener<Packets.RequestAllTitlesPacket>(Main.OnSyncRequest);
-                _listenersInitialized = true;
-            }
+            if (__instance._isHostPlayer) CodeTalkerNetwork.RegisterListener<Packets.RequestAllTitlesPacket>(Main.OnSyncRequest);
             Main.RequestFullTitleSync();
         }
 

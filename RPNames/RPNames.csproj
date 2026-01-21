@@ -3,7 +3,7 @@
     <PropertyGroup>
         <Authors>s0apy.RPNames.sftwre</Authors>
         <Product>RPNames</Product>
-        <Version>1.3.9</Version>
+        <Version>1.4.0</Version>
         <PackageId>RPNames</PackageId>
     </PropertyGroup>
 
