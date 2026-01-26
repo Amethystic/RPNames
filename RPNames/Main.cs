@@ -7,15 +7,15 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using TMPro;
+using CodeTalker;
 using CodeTalker.Networking;
 using CodeTalker.Packets;
 using Newtonsoft.Json;
-using CodeTalker;
+using System.IO.Compression;
 
 // ============== NAMESPACE DEFINITIONS ==============
 namespace RPNames
@@ -168,7 +168,14 @@ namespace RPNames
             
             LoadProfiles();
             PopulatePresetTitles();
-            if (Type.GetType("CodeTalker.Networking.CodeTalkerNetwork, CodeTalker") != null) _isCodeTalkerLoaded = true;
+            if (Type.GetType("CodeTalker.Networking.CodeTalkerNetwork, CodeTalker") != null)
+            {
+                _isCodeTalkerLoaded = true;
+                // --- FIX ---
+                // im not gonna lie.. doing it on onstartclient was kinda dumb.. never again.
+                CodeTalkerNetwork.RegisterBinaryListener<Packets.UpdateTitleProfilePacket>(OnProfileUpdate);
+                CodeTalkerNetwork.RegisterBinaryListener<Packets.FullSyncPacket>(OnFullSync);
+            }
             Harmony.CreateAndPatchAll(typeof(HarmonyPatches));
             Log.LogInfo($"[{ModInfo.NAME} v{ModInfo.VERSION}] has loaded.");
         }
@@ -399,24 +406,13 @@ namespace RPNames
     [HarmonyPatch]
     internal static class HarmonyPatches
     {
-        private static bool _listenersInitialized = false;
+        private static bool _hostListenerInitialized = false;
         internal static readonly Dictionary<uint, CharacterTitleProfile> PlayerProfiles = new Dictionary<uint, CharacterTitleProfile>();
         internal static readonly Dictionary<uint, string> CurrentPlayerTitles = new Dictionary<uint, string>();
         private static readonly FieldInfo _globalNicknameTextMeshField = AccessTools.Field(typeof(Player), "_globalNicknameTextMesh");
         
         [HarmonyPostfix, HarmonyPatch(typeof(Player), "OnGameConditionChange")]
         private static void OnGameConditionChange_Postfix(Player __instance, GameCondition _newCondition) { if (__instance != Player._mainPlayer) return; Main.IsReady = (_newCondition == GameCondition.IN_GAME); if (Main.IsReady) { Main.CurrentCharacterSlot = ProfileDataManager._current.SelectedFileIndex; if (Main.instance.AllCharacterProfiles.TryGetValue(Main.CurrentCharacterSlot, out var profile)) { Main.instance.UpdateGradientCache(profile); Main.SendTitleUpdate(profile); } } }
-        
-        [HarmonyPostfix, HarmonyPatch(typeof(AtlyssNetworkManager), "OnStartClient")]
-        private static void OnStartClient_Postfix()
-        {
-            if (Main._isCodeTalkerLoaded && !_listenersInitialized)
-            {
-                CodeTalkerNetwork.RegisterBinaryListener<Packets.UpdateTitleProfilePacket>(Main.OnProfileUpdate);
-                CodeTalkerNetwork.RegisterBinaryListener<Packets.FullSyncPacket>(Main.OnFullSync);
-                _listenersInitialized = true;
-            }
-        }
         
         [HarmonyPostfix, HarmonyPatch(typeof(AtlyssNetworkManager), "OnStopClient")]
         private static void OnStopClient_Postfix() 
@@ -426,14 +422,19 @@ namespace RPNames
             PlayerProfiles.Clear(); 
             CurrentPlayerTitles.Clear(); 
             Main.AllPlayerAnimators.Clear();
-            _listenersInitialized = false;
+            _hostListenerInitialized = false;
         }
         
         [HarmonyPostfix, HarmonyPatch(typeof(Player), "OnStartAuthority")]
         private static void OnPlayerStart_Postfix(Player __instance)
         {
             if (!__instance.isLocalPlayer || !Main._isCodeTalkerLoaded) return;
-            if (__instance._isHostPlayer) CodeTalkerNetwork.RegisterListener<Packets.RequestAllTitlesPacket>(Main.OnSyncRequest);
+            
+            if (__instance._isHostPlayer && !_hostListenerInitialized)
+            {
+                CodeTalkerNetwork.RegisterListener<Packets.RequestAllTitlesPacket>(Main.OnSyncRequest);
+                _hostListenerInitialized = true;
+            }
             Main.RequestFullTitleSync();
         }
 
