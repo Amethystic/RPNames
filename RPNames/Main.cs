@@ -16,6 +16,7 @@ using CodeTalker.Networking;
 using CodeTalker.Packets;
 using Newtonsoft.Json;
 using System.IO.Compression;
+using Mirror; // Added for NetworkServer check
 
 // ============== NAMESPACE DEFINITIONS ==============
 namespace RPNames
@@ -171,10 +172,9 @@ namespace RPNames
             if (Type.GetType("CodeTalker.Networking.CodeTalkerNetwork, CodeTalker") != null)
             {
                 _isCodeTalkerLoaded = true;
-                // --- FIX ---
-                // im not gonna lie.. doing it on onstartclient was kinda dumb.. never again.
                 CodeTalkerNetwork.RegisterBinaryListener<Packets.UpdateTitleProfilePacket>(OnProfileUpdate);
                 CodeTalkerNetwork.RegisterBinaryListener<Packets.FullSyncPacket>(OnFullSync);
+                CodeTalkerNetwork.RegisterListener<Packets.RequestAllTitlesPacket>(OnSyncRequest);
             }
             Harmony.CreateAndPatchAll(typeof(HarmonyPatches));
             Log.LogInfo($"[{ModInfo.NAME} v{ModInfo.VERSION}] has loaded.");
@@ -245,6 +245,7 @@ namespace RPNames
         
         public static void OnSyncRequest(PacketHeader header, PacketBase packet) 
         { 
+            if (!NetworkServer.active) return;
             if (packet is Packets.RequestAllTitlesPacket) 
             {
                 var syncPacket = new Packets.FullSyncPacket(HarmonyPatches.PlayerProfiles);
@@ -406,7 +407,6 @@ namespace RPNames
     [HarmonyPatch]
     internal static class HarmonyPatches
     {
-        private static bool _hostListenerInitialized = false;
         internal static readonly Dictionary<uint, CharacterTitleProfile> PlayerProfiles = new Dictionary<uint, CharacterTitleProfile>();
         internal static readonly Dictionary<uint, string> CurrentPlayerTitles = new Dictionary<uint, string>();
         private static readonly FieldInfo _globalNicknameTextMeshField = AccessTools.Field(typeof(Player), "_globalNicknameTextMesh");
@@ -422,19 +422,12 @@ namespace RPNames
             PlayerProfiles.Clear(); 
             CurrentPlayerTitles.Clear(); 
             Main.AllPlayerAnimators.Clear();
-            _hostListenerInitialized = false;
         }
         
         [HarmonyPostfix, HarmonyPatch(typeof(Player), "OnStartAuthority")]
         private static void OnPlayerStart_Postfix(Player __instance)
         {
             if (!__instance.isLocalPlayer || !Main._isCodeTalkerLoaded) return;
-            
-            if (__instance._isHostPlayer && !_hostListenerInitialized)
-            {
-                CodeTalkerNetwork.RegisterListener<Packets.RequestAllTitlesPacket>(Main.OnSyncRequest);
-                _hostListenerInitialized = true;
-            }
             Main.RequestFullTitleSync();
         }
 

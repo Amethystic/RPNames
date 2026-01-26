@@ -1,6 +1,10 @@
 ## Changelog
+### 1.4.3
+- **Fixed:** Implemented proper listener cleanup to prevent registration errors when re-hosting a lobby in the same game session.
+- **Fixed:** Corrected a critical issue where network listeners were being registered multiple times, causing errors and preventing title synchronization when joining or re-hosting a lobby. All listeners are now correctly registered only once at startup.
+
 ### 1.4.2
-- **Fixed Again:** Corrected an issue where network listeners were being registered multiple times, causing errors and preventing title synchronization when joining a lobby. Listeners are now correctly registered only once when the client connects.
+- **Fixed Again:** Corrected an issue where network listeners were being registered multiple times...?
 
 ### 1.4.1
 - **Dependencies:** Codeyapper updated to -> 2.2.0
