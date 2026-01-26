@@ -5,7 +5,7 @@
   },
   "projects": {
     "/run/media/soap/The Main Dr/Documents/CODE/Ours/RoleplayTitles/RPNames/RPNames.csproj": {
-      "version": "1.3.9",
+      "version": "1.4.1",
       "restore": {
         "projectUniqueName": "/run/media/soap/The Main Dr/Documents/CODE/Ours/RoleplayTitles/RPNames/RPNames.csproj",
         "projectName": "RPNames",
@@ -64,7 +64,7 @@
             },
             "Soggy_Pancake-CodeYapper": {
               "target": "Package",
-              "version": "[2.1.*, )"
+              "version": "[2.2.*, )"
             },
             "UnityEngine.Modules": {
               "suppressParent": "All",
