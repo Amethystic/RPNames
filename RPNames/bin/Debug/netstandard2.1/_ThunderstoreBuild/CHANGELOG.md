@@ -1,7 +1,6 @@
 ## Changelog
 ### 1.4.2
-- **Dependencies:** Codeyapper updated to -> 2.1.0 (Tested on experimental branch  (v2.2.x))
-- **Fixed:** Corrected an issue where network listeners were being registered multiple times, causing errors and preventing title synchronization when joining a lobby. Listeners are now correctly registered only once when the client connects.
+- **Fixed Again:** Corrected an issue where network listeners were being registered multiple times, causing errors and preventing title synchronization when joining a lobby. Listeners are now correctly registered only once when the client connects.
 
 ### 1.4.1
 - **Dependencies:** Codeyapper updated to -> 2.2.0
